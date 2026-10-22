@@ -928,16 +928,30 @@ lobbyDaily.Font = Enum.Font.GothamBold
 lobbyDaily.TextXAlignment = Enum.TextXAlignment.Right
 
 local vipPulseConn = nil
+
+local function stopVipPulse()
+    if vipPulseConn then
+        vipPulseConn:Disconnect()
+        vipPulseConn = nil
+    end
+end
+
 local function startVipPulse()
-    if vipPulseConn then vipPulseConn:Disconnect() end
+    if vipPulseConn then return end
+
     vipPulseConn = RunService.Heartbeat:Connect(function()
-        if not lobbyVip.Parent then
-            if vipPulseConn then vipPulseConn:Disconnect() end
+        if not gui or not gui.Parent or not lobbyVip.Parent then
+            stopVipPulse()
             return
         end
+
         local t = tick() * 3
         local alpha = (math.sin(t) + 1) / 2
-        lobbyVip.TextColor3 = C.G:Lerp(Color3.fromRGB(255, 120, 0), alpha * 0.3)
+
+        lobbyVip.TextColor3 = C.G:Lerp(
+            Color3.fromRGB(255, 120, 0),
+            alpha * 0.3
+        )
     end)
 end
 
@@ -991,41 +1005,71 @@ local targetCoinsDisplay = 0
 local currentGemsDisplay = 0
 local targetGemsDisplay = 0
 
-RunService.Heartbeat:Connect(function(dt)
-    if not gui.Parent then return end
-    local alpha = math.clamp(dt * 6, 0, 1)
+local displayConn = nil
 
-    currentIncomeDisplay = currentIncomeDisplay + (targetIncomeDisplay - currentIncomeDisplay) * alpha
-    if incomeLbl and incomeLbl.Parent then
-        incomeLbl.Text = "~$" .. fmtNum(currentIncomeDisplay) .. "/min"
+displayConn = RunService.Heartbeat:Connect(function(dt)
+    if not gui or not gui.Parent then
+        if displayConn then
+            displayConn:Disconnect()
+            displayConn = nil
+        end
+        return
     end
 
-    currentPingDisplay = currentPingDisplay + (targetPingDisplay - currentPingDisplay) * alpha
+    local alpha = math.clamp(dt * 6, 0, 1)
+
+    -- Income Display
+    currentIncomeDisplay = currentIncomeDisplay
+        + (targetIncomeDisplay - currentIncomeDisplay) * alpha
+
+    if incomeLbl and incomeLbl.Parent then
+        incomeLbl.Text = "~$"
+            .. fmtNum(currentIncomeDisplay)
+            .. "/min"
+    end
+
+    -- Ping Display
+    currentPingDisplay = currentPingDisplay
+        + (targetPingDisplay - currentPingDisplay) * alpha
+
     local pVal = math.floor(currentPingDisplay + 0.5)
+
     if pingLbl and pingLbl.Parent then
         pingLbl.Text = pVal .. " ms"
         pingLbl.TextColor3 = colorByQuality(180 - pVal, 120, 80)
     end
+
     if lobbyPingLbl and lobbyPingLbl.Parent then
         lobbyPingLbl.Text = "📡 " .. pVal .. "ms"
     end
 
-    currentFPSDisplay = currentFPSDisplay + (targetFPSDisplay - currentFPSDisplay) * alpha
+    -- FPS Display
+    currentFPSDisplay = currentFPSDisplay
+        + (targetFPSDisplay - currentFPSDisplay) * alpha
+
     local fVal = math.floor(currentFPSDisplay + 0.5)
+
     if fpsLbl and fpsLbl.Parent then
         fpsLbl.Text = fVal .. " fps"
         fpsLbl.TextColor3 = colorByQuality(fVal, 50, 30)
     end
+
     if lobbyFpsLbl and lobbyFpsLbl.Parent then
         lobbyFpsLbl.Text = "🖥 " .. fVal .. "fps"
     end
 
-    currentCoinsDisplay = currentCoinsDisplay + (targetCoinsDisplay - currentCoinsDisplay) * alpha
+    -- Coins Display
+    currentCoinsDisplay = currentCoinsDisplay
+        + (targetCoinsDisplay - currentCoinsDisplay) * alpha
+
     if lobbyCoins and lobbyCoins.Parent then
         lobbyCoins.Text = "💰 " .. fmtFullNum(currentCoinsDisplay)
     end
 
-    currentGemsDisplay = currentGemsDisplay + (targetGemsDisplay - currentGemsDisplay) * alpha
+    -- Gems Display
+    currentGemsDisplay = currentGemsDisplay
+        + (targetGemsDisplay - currentGemsDisplay) * alpha
+
     if lobbyGems and lobbyGems.Parent then
         lobbyGems.Text = "💎 " .. fmtFullNum(currentGemsDisplay)
     end
@@ -1391,41 +1435,73 @@ end
 
 local function refreshLobby()
     local _, lvl = getStats()
-    if not lvl or lvl == 0 then lvl = player:GetAttribute("XPLevel") or 0 end
+    if not lvl or lvl == 0 then
+        lvl = player:GetAttribute("XPLevel") or 0
+    end
 
     local cur, max = getRealXP()
     if cur and max then
-        if lobbyXpLbl then lobbyXpLbl.Text = "✨ Lv" .. lvl .. "  XP: " .. cur .. " / " .. max end
+        if lobbyXpLbl then
+            lobbyXpLbl.Text = "✨ Lv" .. lvl .. "  XP: " .. cur .. " / " .. max
+        end
+
         local percent = math.clamp(cur / max, 0, 1)
+
         if lobbyXpFill then
-            TweenService:Create(lobbyXpFill, TweenInfo.new(0.5), {Size = UDim2.new(percent, 0, 1, 0)}):Play()
+            TweenService:Create(
+                lobbyXpFill,
+                TweenInfo.new(0.5),
+                {Size = UDim2.new(percent, 0, 1, 0)}
+            ):Play()
         end
     else
-        if lobbyXpLbl then lobbyXpLbl.Text = "✨ Lv" .. lvl .. "  XP: -- / --" end
+        if lobbyXpLbl then
+            lobbyXpLbl.Text = "✨ Lv" .. lvl .. "  XP: -- / --"
+        end
+
         if lobbyXpFill then
-            TweenService:Create(lobbyXpFill, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 1, 0)}):Play()
+            TweenService:Create(
+                lobbyXpFill,
+                TweenInfo.new(0.3),
+                {Size = UDim2.new(0, 0, 1, 0)}
+            ):Play()
         end
     end
 
     local vip = player:GetAttribute("HasVip") or false
+
     if lobbyVip then
         lobbyVip.Text = "👑 VIP: " .. (vip and "Active" or "None")
+
         if vip then
             startVipPulse()
         else
+            stopVipPulse()
             lobbyVip.TextColor3 = Color3.fromRGB(130, 130, 140)
         end
     end
 
     local day = player:GetAttribute("DailyRewardDay") or 0
     local claimable = player:GetAttribute("DailyRewardClaimable") or false
-    if lobbyDaily then lobbyDaily.Text = "📅 Day: " .. tostring(day) .. (claimable and " ✓" or "") end
+
+    if lobbyDaily then
+        lobbyDaily.Text = "📅 Day: " .. tostring(day)
+            .. (claimable and " ✓" or "")
+    end
 
     local pCount = 0
-    local okN, n = pcall(function() return #Players:GetPlayers() end)
-    if okN then pCount = n end
-    if lobbyPlayerLbl then lobbyPlayerLbl.Text = "👥 " .. pCount end
-    
+    local okN, n = pcall(function()
+        return #Players:GetPlayers()
+    end)
+
+    if okN then
+        pCount = n
+    end
+
+    if lobbyPlayerLbl then
+        lobbyPlayerLbl.Text = "👥 " .. pCount
+    end
+
     if lobbyClockLbl then
         lobbyClockLbl.Text = "🕒 " .. os.date("%H:%M")
     end
@@ -1566,60 +1642,18 @@ local function setRepairUI(on)
     end
 end
 
-local function startRepairLoop()
-    repairLoopToken = repairLoopToken + 1
-    local myToken = repairLoopToken
-    isAutoRepair = true
-    setRepairUI(true)
-
-    task.spawn(function()
-        while isAutoRepair and myToken == repairLoopToken do
-            if not gui or not gui.Parent then
-                if myToken == repairLoopToken then
-                    isAutoRepair = false
-                    setRepairUI(false)
-                end
-                break
-            end
-            pcall(function()
-                if not isHouseOwned() then return end
-                local house = getMyHouse()
-                if house then
-                    local needRepair = false
-                    local doorsToUpgrade = {}
-                    
-                    for i = 1, myDoorCount do
-                        local hp = house:GetAttribute("DoorHP" .. i) or house:GetAttribute("DoorHP") or 0
-                        local mx = house:GetAttribute("DoorMaxHP" .. i) or house:GetAttribute("DoorMaxHP") or 1
-                        if mx > 0 then
-                            local ratio = hp / mx
-                            if ratio < 0.60 then
-                                table.insert(doorsToUpgrade, i)
-                            end
-                            if ratio < 0.75 then
-                                needRepair = true
-                            end
-                        end
-                    end
-
-                    if #doorsToUpgrade > 0 then
-                        pcall(function()
-                            local cash = getCash()
-                            for _, doorIndex in ipairs(doorsToUpgrade) do
-                                upgradeSpecificDoor(house, cash, doorIndex)
-                            end
-                        end)
-                    end
-
-                    if needRepair and getRepairState() == "ready" then
-                        local r = rs:FindFirstChild("TowerDefenseRemotes") and rs.TowerDefenseRemotes:FindFirstChild("RepairDoor")
-                        if r then pcall(function() r:FireServer() end) end
-                    end
-                end
-            end)
-            task.wait(0.3)
+if #doorsToUpgrade > 0 then
+    pcall(function()
+        local cash = getCash()
+        for _, doorIndex in ipairs(doorsToUpgrade) do
+            upgradeSpecificDoor(house, cash, doorIndex)
         end
     end)
+end
+
+if needRepair and getRepairState() == "ready" then
+    local r = rs:FindFirstChild("TowerDefenseRemotes") and rs.TowerDefenseRemotes:FindFirstChild("RepairDoor")
+    if r then pcall(function() r:FireServer() end) end
 end
 
 local function stopRepairLoop()
@@ -1727,7 +1761,7 @@ local function unitTick()
                     if lv < cap and lv < data.cap then
                         local cost = getUnitUpgradeCost(obj.Name, lv)
                         if cost then
-                            local onCD = (now - (upgradeCooldown[obj] or 0)) < UPGRADE_COOLDOWN
+                            local onCD = now < (upgradeCooldown[obj] or 0)
                             local entry = { pos = pos, name = data.unit, level = lv, cost = cost, obj = obj, rank = rank, owner = data.owner }
                             if farm then
                                 local blocked = false
@@ -1830,7 +1864,7 @@ local function unitTick()
             end
             local success = fireAndConfirm(upg, chosen.obj, {chosen.pos.x, chosen.pos.y}, validator)
             if success then
-                upgradeCooldown[chosen.obj] = os.clock()
+                upgradeCooldown[chosen.obj] = os.clock() + UPGRADE_COOLDOWN
                 recentSpend = recentSpend + chosen.cost
             else
                 upgradeCooldown[chosen.obj] = os.clock() + UPGRADE_FAIL_COOLDOWN

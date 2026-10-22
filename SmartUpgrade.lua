@@ -2296,17 +2296,161 @@ local actionBusy = false
 local farmBusy = false
 local emergencyDoorBusy = false
 
+local repairLoopToken = 0
+local doorLoopToken = 0
+local unitLoopToken = 0
+
+local function getDoorHealth(house, index)
+    local hp = house:GetAttribute("DoorHP" .. index)
+
+    if hp == nil then
+        hp = house:GetAttribute("DoorHP")
+    end
+
+    local mx = house:GetAttribute("DoorMaxHP" .. index)
+
+    if mx == nil then
+        mx = house:GetAttribute("DoorMaxHP")
+    end
+
+    if type(hp) ~= "number"
+        or type(mx) ~= "number"
+        or mx <= 0 then
+        return nil
+    end
+
+    return hp / mx
+end
+
+local function getEmergencyDoors(house)
+    local doors = {}
+
+    if not house then
+        return doors
+    end
+
+    for i = 1, myDoorCount do
+        local ratio = getDoorHealth(house, i)
+        local lv = house:GetAttribute(doorLvKey(i)) or 0
+
+        if ratio
+            and ratio < 0.60
+            and lv < doorCap then
+            doors[#doors + 1] = i
+        end
+    end
+
+    table.sort(doors, function(a, b)
+        local ra = getDoorHealth(house, a) or 1
+        local rb = getDoorHealth(house, b) or 1
+
+        if ra ~= rb then
+            return ra < rb
+        end
+
+        return a < b
+    end)
+
+    return doors
+end
+
+local function getAffordableEmergencyDoor(house)
+    if not isAutoRepair or not house then
+        return nil
+    end
+
+    if os.clock() < doorBlockUntil then
+        return nil
+    end
+
+    local cash = getCash()
+
+    for _, index in ipairs(getEmergencyDoors(house)) do
+        local lv = house:GetAttribute(doorLvKey(index)) or 0
+        local cost = getDoorUpgradeCost(lv)
+
+        if cost and cash >= cost then
+            return index
+        end
+    end
+
+    return nil
+end
+
+local function updateEmergencyState(house)
+    if not isAutoRepair or not house then
+        emergencyDoorBusy = false
+        return false
+    end
+
+    refreshDoorCount()
+
+    emergencyDoorBusy = #getEmergencyDoors(house) > 0
+
+    return emergencyDoorBusy
+end
+
+local function tryEmergencyDoor(house)
+    if not isAutoRepair or not house then
+        return false
+    end
+
+    local index = getAffordableEmergencyDoor(house)
+
+    if not index then
+        return false
+    end
+
+    upgradeSpecificDoor(
+        house,
+        getCash(),
+        index
+    )
+
+    return true
+end
+
+local function getFarmPriorityState(house)
+    if not house then
+        return false
+    end
+
+    for _, data in pairs(unitData) do
+        if data.selected and isFarmTower(data.unit) then
+            for _, pos in ipairs(data) do
+                local obj = pos.obj
+
+                if obj and obj.Parent then
+                    local lv = obj:GetAttribute("Level") or 0
+
+                    local cap = math.min(
+                        obj:GetAttribute("LevelCap") or 99,
+                        data.cap or 99
+                    )
+
+                    if lv < cap
+                        and getUnitUpgradeCost(obj.Name, lv) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 local function runLocked(fn)
     if actionBusy then
-        return
+        return false
     end
 
     actionBusy = true
-    pcall(fn)
+    local ok = pcall(fn)
     actionBusy = false
-end
 
-local repairLoopToken = 0
+    return ok
+end
 
 local function setRepairUI(on)
     if on then
@@ -2326,12 +2470,11 @@ local function startRepairLoop()
     setRepairUI(true)
 
     task.spawn(function()
-        while isAutoRepair
-            and myToken == repairLoopToken do
-
+        while isAutoRepair and myToken == repairLoopToken do
             if not gui or not gui.Parent then
                 if myToken == repairLoopToken then
                     isAutoRepair = false
+                    emergencyDoorBusy = false
                     setRepairUI(false)
                 end
                 break
@@ -2339,89 +2482,65 @@ local function startRepairLoop()
 
             pcall(function()
                 local house = getMyHouse()
-                if not house then return end
+
+                if not house then
+                    emergencyDoorBusy = false
+                    return
+                end
 
                 refreshDoorCount()
 
                 local needRepair = false
-                local doorsToUpgrade = {}
 
                 for i = 1, myDoorCount do
-                    local hp =
-                        house:GetAttribute("DoorHP" .. i)
-                        or house:GetAttribute("DoorHP")
-                        or 0
+                    local ratio = getDoorHealth(house, i)
 
-                    local mx =
-                        house:GetAttribute("DoorMaxHP" .. i)
-                        or house:GetAttribute("DoorMaxHP")
-                        or 1
-
-                    if mx > 0 then
-                        local ratio = hp / mx
-
-                        if ratio < 0.75 then
-                            needRepair = true
-                        end
-
-                        if ratio < 0.60 then
-                            table.insert(
-                                doorsToUpgrade,
-                                i
-                            )
-                        end
+                    if ratio and ratio < 0.75 then
+                        needRepair = true
+                        break
                     end
                 end
-                
-                if needRepair
-                    and getRepairState() == "ready" then
 
-                    local r = getRemote("RepairDoor")
+                if needRepair and getRepairState() == "ready" then
+                    local remote = getRemote("RepairDoor")
 
-                    if r then
+                    if remote then
                         pcall(function()
-                            r:FireServer()
+                            remote:FireServer()
                         end)
                     end
                 end
-                
-                if #doorsToUpgrade > 0 then
-                    emergencyDoorBusy = true
 
-                    if not actionBusy then
-                        runLocked(function()
-                            local cash = getCash()
+                updateEmergencyState(house)
 
-                            for _, doorIndex in ipairs(
-                                doorsToUpgrade
-                            ) do
-                                if not isAutoRepair
-                                    or myToken ~= repairLoopToken then
-                                    break
-                                end
+                if actionBusy then
+                    return
+                end
 
-                                local status =
-                                    upgradeSpecificDoor(
-                                        house,
-                                        cash,
-                                        doorIndex
-                                    )
+                if not getAffordableEmergencyDoor(house) then
+                    return
+                end
 
-                                if status == "fired" then
-                                    cash = getCash()
-                                end
-                            end
-                        end)
+                runLocked(function()
+                    if not isAutoRepair
+                        or myToken ~= repairLoopToken then
+                        return
                     end
 
-                    emergencyDoorBusy = false
-                end
+                    if getMyHouse() ~= house then
+                        return
+                    end
+
+                    tryEmergencyDoor(house)
+                end)
             end)
 
             task.wait(0.3)
         end
 
-        emergencyDoorBusy = false
+        if myToken == repairLoopToken then
+            emergencyDoorBusy = false
+        end
     end)
 end
 
@@ -2439,8 +2558,6 @@ repairBtn.MouseButton1Click:Connect(function()
         startRepairLoop()
     end
 end)
-
-local doorLoopToken = 0
 
 local function setDoorUI(on)
     if on then
@@ -2460,9 +2577,7 @@ local function startDoorLoop()
     setDoorUI(true)
 
     task.spawn(function()
-        while isAutoDoor
-            and myToken == doorLoopToken do
-
+        while isAutoDoor and myToken == doorLoopToken do
             if not gui or not gui.Parent then
                 if myToken == doorLoopToken then
                     isAutoDoor = false
@@ -2472,22 +2587,42 @@ local function startDoorLoop()
             end
 
             pcall(function()
-                if emergencyDoorBusy then return end
-                if isUpgrading and farmBusy then return end
+                if actionBusy then
+                    return
+                end
 
                 runLocked(function()
-                    if not isHouseOwned() then return end
-
-                    refreshDoorCount()
+                    if not isAutoDoor
+                        or myToken ~= doorLoopToken then
+                        return
+                    end
 
                     local house = getMyHouse()
 
-                    if house then
-                        upgradeLowestDoor(
-                            house,
-                            getCash()
-                        )
+                    if not house then
+                        return
                     end
+
+                    refreshDoorCount()
+                    updateEmergencyState(house)
+
+                    if getAffordableEmergencyDoor(house) then
+                        tryEmergencyDoor(house)
+                        return
+                    end
+
+                    if isUpgrading
+                        and getFarmPriorityState(house) then
+                        farmBusy = true
+                        return
+                    end
+
+                    farmBusy = false
+
+                    upgradeLowestDoor(
+                        house,
+                        getCash()
+                    )
                 end)
             end)
 
@@ -2510,8 +2645,6 @@ doorUpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local unitLoopToken = 0
-
 local function setUnitUI(on)
     if on then
         toggleAutoBtn.Text = "⏹ Stop Auto Upgrade"
@@ -2525,18 +2658,25 @@ end
 local function unitTick()
     farmBusy = false
 
-    if emergencyDoorBusy then
-        return
-    end
-
-    if not isHouseOwned() then
+    if not isUpgrading then
         return
     end
 
     local house = getMyHouse()
-    if not house then return end
+
+    if not house then
+        nextText = "No house"
+        return
+    end
 
     refreshDoorCount()
+    updateEmergencyState(house)
+
+    if getAffordableEmergencyDoor(house) then
+        nextText = "Emergency Door"
+        tryEmergencyDoor(house)
+        return
+    end
 
     local now = os.clock()
     local cash = getCash()
@@ -2544,6 +2684,7 @@ local function unitTick()
     local farmCands = {}
     local otherCands = {}
 
+    local farmPending = false
     local farmBlocked = false
     local farmWaiting = false
 
@@ -2556,19 +2697,22 @@ local function unitTick()
                 local obj = pos.obj
 
                 if obj and obj.Parent then
-                    local lv =
-                        obj:GetAttribute("Level") or 0
+                    local lv = obj:GetAttribute("Level") or 0
 
-                    local cap =
-                        obj:GetAttribute("LevelCap") or 99
+                    local cap = math.min(
+                        obj:GetAttribute("LevelCap") or 99,
+                        data.cap or 99
+                    )
 
-                    if lv < cap and lv < data.cap then
+                    if lv < cap then
                         local cost =
                             getUnitUpgradeCost(obj.Name, lv)
 
                         if cost then
                             local onCD =
                                 now < (upgradeCooldown[obj] or 0)
+
+                            local locked = isTowerLocked(obj)
 
                             local entry = {
                                 pos = pos,
@@ -2581,6 +2725,8 @@ local function unitTick()
                             }
 
                             if farm then
+                                farmPending = true
+
                                 local blocked = false
 
                                 for i = 1, myDoorCount do
@@ -2597,18 +2743,15 @@ local function unitTick()
 
                                 if blocked then
                                     farmBlocked = true
-                                elseif onCD then
+                                elseif onCD or locked then
                                     farmWaiting = true
-                                elseif not isTowerLocked(obj) then
+                                else
                                     table.insert(
                                         farmCands,
                                         entry
                                     )
                                 end
-
-                            elseif not onCD
-                                and not isTowerLocked(obj) then
-
+                            elseif not onCD and not locked then
                                 table.insert(
                                     otherCands,
                                     entry
@@ -2647,14 +2790,14 @@ local function unitTick()
 
     local function fmtTarget(e)
         local who =
-            (e.rank == 0)
+            e.rank == 0
             and ""
             or (tostring(e.owner) .. ": ")
 
         local need = e.cost - cash
 
         local tail =
-            (need > 0)
+            need > 0
             and (" (-$" .. math.floor(need) .. ")")
             or ""
 
@@ -2678,12 +2821,11 @@ local function unitTick()
 
             if lv < doorCap
                 and (not lowLv or lv < lowLv) then
-
                 lowLv = lv
             end
         end
 
-        if not lowLv then
+        if lowLv == nil then
             return "Door at cap"
         end
 
@@ -2694,8 +2836,7 @@ local function unitTick()
             tail = "  $" .. dc
 
             if cash < dc then
-                tail =
-                    tail
+                tail = tail
                     .. " (-$"
                     .. math.floor(dc - cash)
                     .. ")"
@@ -2710,102 +2851,129 @@ local function unitTick()
     end
 
     local chosen = nil
-    local farmHandled = false
-
     nextText = "No target"
 
-    if #farmCands > 0 then
+    if farmPending then
         farmBusy = true
-        farmHandled = true
 
-        local minLv = farmCands[1].level
+        if #farmCands > 0 then
+            local minLv = farmCands[1].level
 
-        for _, c in ipairs(farmCands) do
-            if c.level ~= minLv then
-                break
+            for _, c in ipairs(farmCands) do
+                if c.level ~= minLv then
+                    break
+                end
+
+                if cash >= c.cost then
+                    chosen = c
+                    break
+                end
             end
 
-            if cash >= c.cost then
-                chosen = c
-                break
+            nextText = fmtTarget(
+                chosen or farmCands[1]
+            )
+
+            if not chosen then
+                return
             end
-        end
 
-        nextText = fmtTarget(
-            chosen or farmCands[1]
-        )
+        elseif farmBlocked then
+            nextText = doorTargetText()
 
-        if not chosen then
+            upgradeLowestDoor(
+                house,
+                getCash()
+            )
+
+            return
+
+        elseif farmWaiting then
+            nextText = "Farm cooldown..."
+            return
+
+        else
+            nextText = "Farm waiting..."
             return
         end
 
-    elseif farmWaiting then
-        farmBusy = true
-        nextText = "Farm cooldown..."
-        return
+    else
+        if isAutoDoor then
+            local doorPending = false
 
-    elseif farmBlocked then
-        nextText = doorTargetText()
+            for i = 1, myDoorCount do
+                local lv =
+                    house:GetAttribute(doorLvKey(i)) or 0
 
-        local status =
-            upgradeLowestDoor(house, cash)
+                if lv < doorCap then
+                    doorPending = true
+                    break
+                end
+            end
 
-        if status ~= "none" then
-            farmBusy = true
-            return
+            if doorPending then
+                nextText = doorTargetText()
+                return
+            end
         end
-    end
 
-    if not chosen then
         for _, c in ipairs(otherCands) do
             if cash >= c.cost then
                 chosen = c
                 break
             end
         end
+
+        if chosen or otherCands[1] then
+            nextText = fmtTarget(
+                chosen or otherCands[1]
+            )
+        end
     end
 
-    if not farmHandled
-        and (chosen or otherCands[1]) then
+    if not chosen then
+        return
+    end
 
-        nextText = fmtTarget(
-            chosen or otherCands[1]
+    if getAffordableEmergencyDoor(house) then
+        nextText = "Emergency Door"
+        tryEmergencyDoor(house)
+        return
+    end
+
+    local upg = getRemote("UpgradeTower")
+
+    if not upg then
+        return
+    end
+
+    local validator = function()
+        return canFireTower(
+            chosen.obj,
+            chosen.pos.x,
+            chosen.pos.y
         )
     end
 
-    if chosen then
-        local upg = getRemote("UpgradeTower")
+    local success = fireAndConfirm(
+        upg,
+        chosen.obj,
+        {
+            chosen.pos.x,
+            chosen.pos.y
+        },
+        validator
+    )
 
-        if upg then
-            local validator = function()
-                return canFireTower(
-                    chosen.obj,
-                    chosen.pos.x,
-                    chosen.pos.y
-                )
-            end
+    if success then
+        upgradeCooldown[chosen.obj] =
+            os.clock() + UPGRADE_COOLDOWN
 
-            local success = fireAndConfirm(
-                upg,
-                chosen.obj,
-                {
-                    chosen.pos.x,
-                    chosen.pos.y
-                },
-                validator
-            )
-
-            if success then
-                upgradeCooldown[chosen.obj] =
-                    os.clock() + UPGRADE_COOLDOWN
-
-                recentSpend =
-                    recentSpend + chosen.cost
-            else
-                upgradeCooldown[chosen.obj] =
-                    os.clock() + UPGRADE_FAIL_COOLDOWN
-            end
-        end
+        recentSpend =
+            recentSpend + chosen.cost
+    else
+        upgradeCooldown[chosen.obj] =
+            os.clock() + UPGRADE_FAIL_COOLDOWN
     end
 end
 
@@ -2829,11 +2997,20 @@ local function startUnitLoop()
                 break
             end
 
-            if not emergencyDoorBusy then
-                pcall(function()
-                    runLocked(unitTick)
+            pcall(function()
+                if actionBusy then
+                    return
+                end
+
+                runLocked(function()
+                    if not isUpgrading
+                        or myToken ~= unitLoopToken then
+                        return
+                    end
+
+                    unitTick()
                 end)
-            end
+            end)
 
             task.wait(0.4)
         end

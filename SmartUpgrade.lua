@@ -80,7 +80,7 @@ local upgradeCooldown = setmetatable({}, {
 
 local UPGRADE_COOLDOWN = 1.0
 local UPGRADE_FAIL_COOLDOWN = 2.0
-local CONFIRM_TIMEOUT = 0.3
+local CONFIRM_TIMEOUT = 1.0
 
 local FARM_TYPES = {
     VaultFarm = true,
@@ -433,7 +433,7 @@ local function upgradeSpecificDoor(house, cash, doorIndex)
 
         if doorFailCount >= 3 then
             doorFailCount = 0
-            doorBlockUntil = os.clock() + 30
+            doorBlockUntil = os.clock() + 5
         end
 
         task.wait(1)

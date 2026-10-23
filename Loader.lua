@@ -30,7 +30,6 @@ for _, path in ipairs(MODULES) do
     parts[#parts + 1] = downloaded
 end
 
--- A separator newline prevents tokens from adjacent fragments merging.
 local combined = table.concat(parts, "\n")
 local chunk, compileError = compile(combined)
 if not chunk then

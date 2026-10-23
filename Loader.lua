@@ -1,16 +1,12 @@
--- SmartUpgrade modular loader
--- Downloads source fragments and concatenates them into ONE Lua chunk.
--- This preserves the shared local scope of the original monolithic script.
-
 local BASE_URL = "https://raw.githubusercontent.com/NantawatTHZ/my-project/main/"
 local MODULES = {
-    "Modules/01_Core.lua",
-    "Modules/02_Profile.lua",
-    "Modules/03_UI.lua",
-    "Modules/04_Dashboard.lua",
-    "Modules/05_Scanning.lua",
-    "Modules/06_Automation.lua",
-    "Modules/07_Initialization.lua",
+    "Modules/Core.lua",
+    "Modules/Profile.lua",
+    "Modules/UI.lua",
+    "Modules/Dashboard.lua",
+    "Modules/Scanning.lua",
+    "Modules/Automation.lua",
+    "Modules/Initialization.lua",
 }
 
 local compile = loadstring

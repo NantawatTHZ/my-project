@@ -2322,27 +2322,31 @@ local function getDoorHealth(house, index)
     return hp / mx
 end
 
+
 local function getEmergencyDoors(house)
     local doors = {}
+    local ratios = {}
 
     if not house then
         return doors
     end
-
+  
     for i = 1, myDoorCount do
         local ratio = getDoorHealth(house, i)
         local lv = house:GetAttribute(doorLvKey(i)) or 0
 
-        if ratio
-            and ratio < 0.3
-            and lv < doorCap then
-            doors[#doors + 1] = i
+        if ratio then
+            ratios[i] = ratio
+
+            if ratio < 0.3 and lv < doorCap then
+                doors[#doors + 1] = i
+            end
         end
     end
-
+  
     table.sort(doors, function(a, b)
-        local ra = getDoorHealth(house, a) or 1
-        local rb = getDoorHealth(house, b) or 1
+        local ra = ratios[a] or 1
+        local rb = ratios[b] or 1
 
         if ra ~= rb then
             return ra < rb

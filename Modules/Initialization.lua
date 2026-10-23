@@ -8,19 +8,37 @@ local function initGame()
         return
     end
 
-    isGameInitialized = true
+    local statsOk, statsResult = pcall(function()
+        local module = rs:WaitForChild("TowerStats", 5)
 
-    pcall(function()
-        TowerStats = require(
-            rs:WaitForChild("TowerStats", 5)
-        )
+        if not module then
+            error("TowerStats module not found")
+        end
+
+        return require(module)
     end)
 
-    pcall(function()
-        TowerConfig = require(
-            rs:WaitForChild("TowerConfig", 5)
-        )
+    local configOk, configResult = pcall(function()
+        local module = rs:WaitForChild("TowerConfig", 5)
+
+        if not module then
+            error("TowerConfig module not found")
+        end
+
+        return require(module)
     end)
+
+    TowerStats = statsOk and statsResult or nil
+    TowerConfig = configOk and configResult or nil
+
+    if not TowerStats or not TowerConfig then
+        noDataLabel.Text = not TowerStats
+            and "⚠ TowerStats not loaded; retrying..."
+            or "⚠ TowerConfig not loaded; retrying..."
+
+        toggleBtn.Visible = true
+        return
+    end
 
     loadProfile()
 
@@ -28,11 +46,7 @@ local function initGame()
         capInput.Text = tostring(doorCap)
     end
 
-    if not TowerStats then
-        noDataLabel.Text =
-            "⚠ TowerStats not loaded"
-    end
-
+    isGameInitialized = true
     pcall(doScan)
 
     if isAutoRepair then

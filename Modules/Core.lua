@@ -80,7 +80,7 @@ local upgradeCooldown = setmetatable({}, {
 
 local UPGRADE_COOLDOWN = 1.0
 local UPGRADE_FAIL_COOLDOWN = 2.0
-local CONFIRM_TIMEOUT = 1.0
+local CONFIRM_TIMEOUT = 2.5
 
 local FARM_TYPES = {
     VaultFarm = true,

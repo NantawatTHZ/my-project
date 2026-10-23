@@ -1,13 +1,13 @@
 local function getDoorHealth(house, index)
     local hp = house:GetAttribute("DoorHP" .. index)
 
-    if hp == nil then
+    if hp == nil and myDoorCount == 1 then
         hp = house:GetAttribute("DoorHP")
     end
 
     local mx = house:GetAttribute("DoorMaxHP" .. index)
 
-    if mx == nil then
+    if mx == nil and myDoorCount == 1 then
         mx = house:GetAttribute("DoorMaxHP")
     end
 

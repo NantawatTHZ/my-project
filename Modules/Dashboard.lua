@@ -1,3 +1,7 @@
+local currentFPS = 60
+local fpsElapsed = 0
+local fpsFrames = 0
+
 local function getApproxFPS()
     return currentFPS
 end
@@ -56,6 +60,19 @@ local targetGemsDisplay = 0
 local displayConn = nil
 
 displayConn = RunService.Heartbeat:Connect(function(dt)
+    if dt > 0 then
+        fpsElapsed = fpsElapsed + dt
+        fpsFrames = fpsFrames + 1
+
+        if fpsElapsed >= 0.5 then
+            currentFPS = math.floor(
+                fpsFrames / fpsElapsed + 0.5
+            )
+            fpsElapsed = 0
+            fpsFrames = 0
+        end
+    end
+
     if not gui or not gui.Parent then
         if displayConn then
             displayConn:Disconnect()

@@ -2334,7 +2334,7 @@ local function getEmergencyDoors(house)
         local lv = house:GetAttribute(doorLvKey(i)) or 0
 
         if ratio
-            and ratio < 0.60
+            and ratio < 0.3
             and lv < doorCap then
             doors[#doors + 1] = i
         end
@@ -2495,7 +2495,7 @@ local function startRepairLoop()
                 for i = 1, myDoorCount do
                     local ratio = getDoorHealth(house, i)
 
-                    if ratio and ratio < 0.75 then
+                    if ratio and ratio < 0.5 then
                         needRepair = true
                         break
                     end
@@ -2535,7 +2535,7 @@ local function startRepairLoop()
                 end)
             end)
 
-            task.wait(0.3)
+            task.wait(0.1)
         end
 
         if myToken == repairLoopToken then

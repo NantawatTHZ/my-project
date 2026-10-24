@@ -1,5 +1,5 @@
 local function refreshLobby()
-    local _, lvl = getStats()
+    local coins, lvl = getStats()
 
     if not lvl or lvl == 0 then
         lvl = player:GetAttribute("XPLevel") or 0
@@ -61,36 +61,28 @@ local function refreshLobby()
     end
 
     lobbyClockLbl.Text = "🕒 " .. os.date("%H:%M")
+    targetCoinsDisplay = player:GetAttribute("Coins") or coins or 0
+    targetGemsDisplay = player:GetAttribute("Gems") or 0
 end
 
 local function applyMode(inMatch)
+    local modeChanged = infoPanel.Visible ~= inMatch
+
     infoPanel.Visible = inMatch
     upgradePanel.Visible = inMatch
     lobbyPanel.Visible = not inMatch
 
-    if inMatch then
+    if inMatch and modeChanged then
         infoPanel.Size = UDim2.new(0, CONTAINER_W, 0, 0)
         upgradePanel.Size = UDim2.new(0, CONTAINER_W, 0, 0)
 
         if capInput and not capInput:IsFocused() then
             capInput.Text = tostring(doorCap)
         end
-    else
+    elseif not inMatch and modeChanged and container.Visible then
         pcall(refreshLobby)
     end
 end
-
-task.spawn(function()
-    while gui.Parent do
-        task.wait(1)
-
-        if not gui or not gui.Parent then
-            break
-        end
-
-        applyMode(isInMatch())
-    end
-end)
 
 local function scanTowers()
     local capSnap = {}
@@ -204,61 +196,64 @@ local function doScan()
     refreshList()
 end
 
-task.spawn(function()
-    local lastHouseName = nil
+if isMatchSession then
+    task.spawn(function()
+        local lastHouseName = nil
 
-    while gui.Parent do
-        pcall(function()
-            local h = getMyHouse()
+        while gui and gui.Parent do
+            task.wait(2)
 
-            if h then
-                if h.Name ~= lastHouseName then
-                    lastHouseName = h.Name
-
-                    local owner = h:GetAttribute("OwnerName")
-                    local who
-
-                    if owner == player.Name then
-                        who = "Own"
-                    elseif type(owner) == "string"
-                        and owner ~= "" then
-                        who = owner .. " (Team)"
-                    else
-                        who = "Team"
-                    end
-
-                    houseLbl.Text =
-                        h.Name .. "  |  " .. who
-                end
-            else
-                lastHouseName = nil
-                houseLbl.Text = "-- (no house)"
+            if not gui or not gui.Parent then
+                break
             end
-        end)
 
-        task.wait(1)
-    end
-end)
-
-task.spawn(function()
-    while gui.Parent do
-        task.wait(2)
-
-        if not gui or not gui.Parent then
-            break
-        end
-
-        pcall(function()
-            if isInMatch() then
-                scanTowers()
+            pcall(function()
+                if container.Visible or isUpgrading then
+                    scanTowers()
+                end
 
                 if container.Visible then
                     refreshList()
+                    local h = getMyHouse()
+
+                    if h then
+                        if h.Name ~= lastHouseName then
+                            lastHouseName = h.Name
+
+                            local owner = h:GetAttribute("OwnerName")
+                            local who
+
+                            if owner == player.Name then
+                                who = "Own"
+                            elseif type(owner) == "string"
+                                and owner ~= "" then
+                                who = owner .. " (Team)"
+                            else
+                                who = "Team"
+                            end
+
+                            houseLbl.Text =
+                                h.Name .. "  |  " .. who
+                        end
+                    else
+                        lastHouseName = nil
+                        houseLbl.Text = "-- (no house)"
+                    end
                 end
+            end)
+        end
+    end)
+else
+    task.spawn(function()
+        while gui and gui.Parent do
+            task.wait(10)
+
+            if container.Visible then
+                pcall(refreshLobby)
             end
-        end)
-    end
-end)
+        end
+    end)
+end
 
 local actionBusy = false
 local farmBusy = false
@@ -267,4 +262,3 @@ local emergencyDoorBusy = false
 local repairLoopToken = 0
 local doorLoopToken = 0
 local unitLoopToken = 0
-

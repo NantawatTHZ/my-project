@@ -466,7 +466,7 @@ local function upgradeLowestDoor(house, cash)
     return upgradeSpecificDoor(house, cash, idx)
 end
 
-local function isInMatch()
+local isMatchSession = (function()
     if not workspace:FindFirstChild("PlacedTowers") then
         return false
     end
@@ -478,7 +478,7 @@ local function isInMatch()
     end
 
     return remotes:FindFirstChild("UpgradeTower") ~= nil
-end
+end)()
 
 local function getRealXP()
     local hotbarGui = player.PlayerGui:FindFirstChild("HotbarGui")
@@ -513,4 +513,3 @@ local function getRealXP()
 
     return nil
 end
-

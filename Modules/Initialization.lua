@@ -3,7 +3,7 @@ local function initGame()
         return
     end
 
-    if not isInMatch() then
+    if not isMatchSession then
         toggleBtn.Visible = true
         return
     end
@@ -70,24 +70,13 @@ lobbyPanel.Visible = true
 container.Visible = false
 
 initGame()
-applyMode(isInMatch())
+applyMode(isMatchSession)
 
-task.spawn(function()
-    task.wait(0.5)
-
-    if not gui or not gui.Parent then
-        return
-    end
-
-    applyMode(isInMatch())
-end)
-
-task.spawn(function()
-    while gui.Parent do
-        if not isGameInitialized and isInMatch() then
+if isMatchSession then
+    task.spawn(function()
+        while gui and gui.Parent and not isGameInitialized do
             pcall(initGame)
+            task.wait(1)
         end
-
-        task.wait(1)
-    end
-end)
+    end)
+end

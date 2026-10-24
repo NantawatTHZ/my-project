@@ -50,7 +50,7 @@ local function getMatchInfo()
         else
             status = "🔴 Defeated • ⏳ Waiting for Match"
         end
-    elseif isInMatch() then
+    elseif isMatchSession then
         status = "🟢 In Progress"
     else
         status = "⏳ Waiting for Match"
@@ -119,6 +119,20 @@ local targetGemsDisplay = 0
 local displayConn = nil
 
 displayConn = RunService.Heartbeat:Connect(function(dt)
+    if not gui or not gui.Parent then
+        if displayConn then
+            displayConn:Disconnect()
+            displayConn = nil
+        end
+        return
+    end
+
+    if not container.Visible then
+        fpsElapsed = 0
+        fpsFrames = 0
+        return
+    end
+
     if dt > 0 then
         fpsElapsed = fpsElapsed + dt
         fpsFrames = fpsFrames + 1
@@ -130,14 +144,6 @@ displayConn = RunService.Heartbeat:Connect(function(dt)
             fpsElapsed = 0
             fpsFrames = 0
         end
-    end
-
-    if not gui or not gui.Parent then
-        if displayConn then
-            displayConn:Disconnect()
-            displayConn = nil
-        end
-        return
     end
 
     local alpha = math.clamp(dt * 6, 0, 1)
@@ -203,8 +209,8 @@ displayConn = RunService.Heartbeat:Connect(function(dt)
 end)
 
 task.spawn(function()
-    while true do
-        task.wait(1)
+    while isMatchSession do
+        task.wait(infoPanel.Visible and container.Visible and 1 or 4)
 
         if not gui or not gui.Parent then
             break
@@ -212,43 +218,45 @@ task.spawn(function()
 
         pcall(function()
             local m, l = getStats()
-            lvlInlineLbl.Text = "⭐ Lv" .. l
-            timeLbl.Text = os.date("%H:%M")
+            if infoPanel.Visible and container.Visible then
+                lvlInlineLbl.Text = "⭐ Lv" .. l
+                timeLbl.Text = os.date("%H:%M")
 
-            local modeText, matchStatus, matchTimer = getMatchInfo()
+                local modeText, matchStatus, matchTimer = getMatchInfo()
 
-            local matchBox = infoPanel:FindFirstChild("MatchStatusBox")
-            local matchIcon = matchBox
-                and matchBox:FindFirstChild("MatchIcon")
+                local matchBox = infoPanel:FindFirstChild("MatchStatusBox")
+                local matchIcon = matchBox
+                    and matchBox:FindFirstChild("MatchIcon")
 
-            local matchScroll = matchBox
-                and matchBox:FindFirstChild("MatchStatusScroll")
+                local matchScroll = matchBox
+                    and matchBox:FindFirstChild("MatchStatusScroll")
 
-            local matchStatusLbl = matchScroll
-                and matchScroll:FindFirstChild("MatchStatus")
+                local matchStatusLbl = matchScroll
+                    and matchScroll:FindFirstChild("MatchStatus")
 
-            if matchStatusLbl then
-                local eventIcon = "🎮"
+                if matchStatusLbl then
+                    local eventIcon = "🎮"
 
-                if string.find(
-                    string.lower(modeText),
-                    "halloween",
-                    1,
-                    true
-                ) then
-                    eventIcon = "🎃"
+                    if string.find(
+                        string.lower(modeText),
+                        "halloween",
+                        1,
+                        true
+                    ) then
+                        eventIcon = "🎃"
+                    end
+
+                    if matchIcon then
+                        matchIcon.Text = eventIcon
+                    end
+
+                    matchStatusLbl.Text =
+                        modeText
+                        .. " • "
+                        .. matchStatus
+                        .. " • 🕒 "
+                        .. matchTimer
                 end
-
-                if matchIcon then
-                    matchIcon.Text = eventIcon
-                end
-
-                matchStatusLbl.Text =
-                    modeText
-                    .. " • "
-                    .. matchStatus
-                    .. " • 🕒 "
-                    .. matchTimer
             end
 
             local nowC = os.clock()
@@ -286,29 +294,79 @@ task.spawn(function()
 
             targetIncomeDisplay = sum / span * 60
 
-            local rst, rsec = getRepairState()
+            if infoPanel.Visible and container.Visible then
+                local rst, rsec = getRepairState()
 
-            if rst == "ready" then
-                repairLbl.Text = "Ready"
-                repairLbl.TextColor3 = C.S
-            elseif rst == "active" then
-                repairLbl.Text =
-                    "Healing " .. math.ceil(rsec) .. "s"
-                repairLbl.TextColor3 = C.A
-            else
-                repairLbl.Text =
-                    "CD " .. math.ceil(rsec) .. "s"
-                repairLbl.TextColor3 = C.G
-            end
-
-            if isUpgrading and isAutoDoor then
-                if nextText
-                    and nextText ~= "No target"
-                    and nextText ~= "Farm cooldown..." then
-
-                    nextLbl.Text =
-                        nextText .. " (Door active)"
+                if rst == "ready" then
+                    repairLbl.Text = "Ready"
+                    repairLbl.TextColor3 = C.S
+                elseif rst == "active" then
+                    repairLbl.Text =
+                        "Healing " .. math.ceil(rsec) .. "s"
+                    repairLbl.TextColor3 = C.A
                 else
+                    repairLbl.Text =
+                        "CD " .. math.ceil(rsec) .. "s"
+                    repairLbl.TextColor3 = C.G
+                end
+
+                if isUpgrading and isAutoDoor then
+                    if nextText
+                        and nextText ~= "No target"
+                        and nextText ~= "Farm cooldown..." then
+
+                        nextLbl.Text =
+                            nextText .. " (Door active)"
+                    else
+                        local house = getMyHouse()
+
+                        if house then
+                            local lowestLv = math.huge
+
+                            for i = 1, myDoorCount do
+                                local lv =
+                                    house:GetAttribute(doorLvKey(i)) or 0
+
+                                if lv < doorCap and lv < lowestLv then
+                                    lowestLv = lv
+                                end
+                            end
+
+                            if lowestLv ~= math.huge then
+                                local dc = getDoorUpgradeCost(lowestLv)
+                                local cash = getCash()
+                                local tail = ""
+
+                                if dc then
+                                    tail = "  $" .. dc
+
+                                    if cash < dc then
+                                        tail = tail
+                                            .. " (-$"
+                                            .. math.floor(dc - cash)
+                                            .. ")"
+                                    end
+                                end
+
+                                nextLbl.Text =
+                                    "Door "
+                                    .. lowestLv
+                                    .. "->"
+                                    .. (lowestLv + 1)
+                                    .. tail
+                                    .. " (Unit on)"
+                            else
+                                nextLbl.Text = nextText
+                            end
+                        else
+                            nextLbl.Text = nextText
+                        end
+                    end
+
+                elseif isUpgrading then
+                    nextLbl.Text = nextText
+
+                elseif isAutoDoor then
                     local house = getMyHouse()
 
                     if house then
@@ -323,7 +381,9 @@ task.spawn(function()
                             end
                         end
 
-                        if lowestLv ~= math.huge then
+                        if lowestLv == math.huge then
+                            nextLbl.Text = "Door at target cap"
+                        else
                             local dc = getDoorUpgradeCost(lowestLv)
                             local cash = getCash()
                             local tail = ""
@@ -345,81 +405,31 @@ task.spawn(function()
                                 .. "->"
                                 .. (lowestLv + 1)
                                 .. tail
-                                .. " (Unit on)"
-                        else
-                            nextLbl.Text = nextText
                         end
                     else
-                        nextLbl.Text = nextText
-                    end
-                end
-
-            elseif isUpgrading then
-                nextLbl.Text = nextText
-
-            elseif isAutoDoor then
-                local house = getMyHouse()
-
-                if house then
-                    local lowestLv = math.huge
-
-                    for i = 1, myDoorCount do
-                        local lv =
-                            house:GetAttribute(doorLvKey(i)) or 0
-
-                        if lv < doorCap and lv < lowestLv then
-                            lowestLv = lv
-                        end
-                    end
-
-                    if lowestLv == math.huge then
-                        nextLbl.Text = "Door at target cap"
-                    else
-                        local dc = getDoorUpgradeCost(lowestLv)
-                        local cash = getCash()
-                        local tail = ""
-
-                        if dc then
-                            tail = "  $" .. dc
-
-                            if cash < dc then
-                                tail = tail
-                                    .. " (-$"
-                                    .. math.floor(dc - cash)
-                                    .. ")"
-                            end
-                        end
-
-                        nextLbl.Text =
-                            "Door "
-                            .. lowestLv
-                            .. "->"
-                            .. (lowestLv + 1)
-                            .. tail
+                        nextLbl.Text = "Door: No house"
                     end
                 else
-                    nextLbl.Text = "Door: No house"
+                    nextLbl.Text = "Automation idle (All off)"
                 end
-            else
-                nextLbl.Text = "Automation idle (All off)"
-            end
 
-            local okN, n = pcall(function()
-                return #Players:GetPlayers()
-            end)
+                local okN, n = pcall(function()
+                    return #Players:GetPlayers()
+                end)
 
-            if okN then
-                playerCountLbl.Text = n .. " Players"
-            end
+                if okN then
+                    playerCountLbl.Text = n .. " Players"
+                end
 
-            local okP, ping = pcall(function()
-                return Stats.Network.ServerStatsItem[
-                    "Data Ping"
-                ]:GetValue()
-            end)
+                local okP, ping = pcall(function()
+                    return Stats.Network.ServerStatsItem[
+                        "Data Ping"
+                    ]:GetValue()
+                end)
 
-            if okP and type(ping) == "number" then
-                targetPingDisplay = ping
+                if okP and type(ping) == "number" then
+                    targetPingDisplay = ping
+                end
             end
 
             local fps = getApproxFPS()

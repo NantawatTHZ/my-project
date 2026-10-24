@@ -23,8 +23,7 @@ end
 local matchDoorLost = false
 
 local function automationMatchActive(house)
-    if not isInMatch() then
-        matchDoorLost = false
+    if not isMatchSession then
         return false
     end
 
@@ -43,18 +42,6 @@ local function automationMatchActive(house)
             farmBusy = false
 
             warn("[SmartUpgrade] Door HP reached 0. Automation paused until the next match.")
-
-            task.spawn(function()
-                while matchDoorLost and gui and gui.Parent do
-                    if not isInMatch() then
-                        matchDoorLost = false
-                        return
-                    end
-
-                    task.wait(0.1)
-                end
-            end)
-
             return false
         end
     end
@@ -207,6 +194,10 @@ local function setRepairUI(on)
 end
 
 local function startRepairLoop()
+    if not isMatchSession then
+        return
+    end
+
     repairLoopToken = repairLoopToken + 1
     local myToken = repairLoopToken
 
@@ -321,6 +312,10 @@ local function setDoorUI(on)
 end
 
 local function startDoorLoop()
+    if not isMatchSession then
+        return
+    end
+
     doorLoopToken = doorLoopToken + 1
     local myToken = doorLoopToken
 
@@ -743,6 +738,10 @@ local function unitTick()
 end
 
 local function startUnitLoop()
+    if not isMatchSession then
+        return
+    end
+
     unitLoopToken = unitLoopToken + 1
     local myToken = unitLoopToken
 
@@ -858,7 +857,11 @@ toggleBtn.MouseButton1Click:Connect(function()
     container.Visible = not container.Visible
 
     if container.Visible then
-        pcall(doScan)
+        if isMatchSession then
+            pcall(doScan)
+        else
+            pcall(refreshLobby)
+        end
 
         containerScale.Scale = 0.7
 

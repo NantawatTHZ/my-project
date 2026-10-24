@@ -761,7 +761,11 @@ local function startVipPulse()
     if vipPulseConn then return end
 
     vipPulseConn = RunService.Heartbeat:Connect(function()
-        if not gui or not gui.Parent or not lobbyVip.Parent then
+        if not gui
+            or not gui.Parent
+            or not lobbyVip.Parent
+            or not lobbyPanel.Visible
+            or not container.Visible then
             stopVipPulse()
             return
         end

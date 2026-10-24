@@ -1,4 +1,4 @@
-local BASE_URL = "https://raw.githubusercontent.com/NantawatTHZ/my-project/main/"
+local BASE_URL = "https://raw.githubusercontent.com/NantawatTHZ/my-project/main/Survive%20The%20Night/"
 local MODULES = {
     "Modules/Core.lua",
     "Modules/Profile.lua",

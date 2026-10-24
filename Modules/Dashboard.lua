@@ -39,8 +39,25 @@ local function getMatchInfo()
         modeText = modeText .. " / " .. difficulty
     end
 
+    local rewardReady = player:GetAttribute("MatchRewardReady") == true
+    local matchWon = player:GetAttribute("MatchRewardWon")
+    local matchLive = player:GetAttribute("MatchSecondsLive") == true
+    local status
+
+    if rewardReady and typeof(matchWon) == "boolean" and not matchLive then
+        if matchWon then
+            status = "🏆 Won • ⏳ Waiting for Match"
+        else
+            status = "🔴 Defeated • ⏳ Waiting for Match"
+        end
+    elseif isInMatch() then
+        status = "🟢 In Progress"
+    else
+        status = "⏳ Waiting for Match"
+    end
+
     return modeText,
-        isInMatch() and "🟢 กำลังเล่น" or "⚪ รอแมตช์ใหม่",
+        status,
         elapsed and string.format(
             "%02d:%02d",
             math.floor(elapsed / 60),

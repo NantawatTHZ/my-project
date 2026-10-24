@@ -44,6 +44,17 @@ local function automationMatchActive(house)
 
             warn("[SmartUpgrade] Door HP reached 0. Automation paused until the next match.")
 
+            task.spawn(function()
+                while matchDoorLost and gui and gui.Parent do
+                    if not isInMatch() then
+                        matchDoorLost = false
+                        return
+                    end
+
+                    task.wait(0.1)
+                end
+            end)
+
             return false
         end
     end
@@ -241,6 +252,10 @@ local function startRepairLoop()
                     end
                 end
 
+                if actionBusy then
+                    return
+                end
+
                 if needRepair and getRepairState() == "ready" then
                     local remote = getRemote("RepairDoor")
 
@@ -252,10 +267,6 @@ local function startRepairLoop()
                 end
 
                 updateEmergencyState(house)
-
-                if actionBusy then
-                    return
-                end
 
                 if not getAffordableEmergencyDoor(house) then
                     return
@@ -802,7 +813,7 @@ toggleBtn.InputBegan:Connect(function(input)
     end
 end)
 
-UIS.InputChanged:Connect(function(input)
+local inputChangedConn = UIS.InputChanged:Connect(function(input)
     if drag and (
         input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseMovement
@@ -825,12 +836,17 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
+local inputEndedConn = UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseButton1 then
 
         drag = false
     end
+end)
+
+gui.Destroying:Connect(function()
+    inputChangedConn:Disconnect()
+    inputEndedConn:Disconnect()
 end)
 
 toggleBtn.MouseButton1Click:Connect(function()

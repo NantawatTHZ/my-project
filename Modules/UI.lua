@@ -704,29 +704,3 @@ local function startVipPulse()
     end)
 end
 
-local fpsCount = 0
-local fpsStart = os.clock()
-local currentFPS = 60
-local fpsConn = nil
-
-fpsConn = RunService.Heartbeat:Connect(function()
-    if not gui or not gui.Parent then
-        if fpsConn then
-            fpsConn:Disconnect()
-            fpsConn = nil
-        end
-        return
-    end
-
-    fpsCount = fpsCount + 1
-    local now = os.clock()
-
-    if now - fpsStart >= 0.5 then
-        currentFPS = math.floor(
-            fpsCount / (now - fpsStart) + 0.5
-        )
-        fpsCount = 0
-        fpsStart = now
-    end
-end)
-

@@ -6,6 +6,48 @@ local function getApproxFPS()
     return currentFPS
 end
 
+local function getMatchInfo()
+    local mode = workspace:GetAttribute("ResolvedGameMode")
+        or workspace:GetAttribute("ActiveGameMode")
+    local difficulty = workspace:GetAttribute("ModeDifficulty")
+    local seconds = player:GetAttribute("MatchSeconds")
+    local secondsAt = player:GetAttribute("MatchSecondsAt")
+    local elapsed = nil
+
+    if typeof(seconds) == "number"
+        and seconds >= 0
+        and seconds < math.huge then
+        elapsed = seconds
+
+        if player:GetAttribute("MatchSecondsLive") == true
+            and typeof(secondsAt) == "number"
+            and secondsAt > -math.huge
+            and secondsAt < math.huge then
+            elapsed = elapsed + math.max(
+                0,
+                workspace:GetServerTimeNow() - secondsAt
+            )
+        end
+
+        elapsed = math.max(0, math.floor(elapsed))
+    end
+
+    local modeText = typeof(mode) == "string" and mode ~= ""
+        and mode or "โหมดไม่ทราบ"
+
+    if typeof(difficulty) == "string" and difficulty ~= "" then
+        modeText = modeText .. " / " .. difficulty
+    end
+
+    return modeText,
+        isInMatch() and "🟢 กำลังเล่น" or "⚪ รอแมตช์ใหม่",
+        elapsed and string.format(
+            "%02d:%02d",
+            math.floor(elapsed / 60),
+            elapsed % 60
+        ) or "--:--"
+end
+
 local function colorByQuality(v, good, mid)
     if v >= good then
         return C.S
@@ -156,16 +198,16 @@ task.spawn(function()
             lvlInlineLbl.Text = "⭐ Lv" .. l
             timeLbl.Text = os.date("%H:%M")
 
-            local matchStatus =
-                isInMatch() and "🟢 กำลังเล่น"
-                or "⚪ รอแมตช์ใหม่"
+            local modeText, matchStatus, matchTimer = getMatchInfo()
             local matchStatusLbl = infoPanel:FindFirstChild("MatchStatus")
 
             if matchStatusLbl then
                 matchStatusLbl.Text =
-                    "โหมดไม่ทราบ • "
+                    modeText
+                    .. " • "
                     .. matchStatus
-                    .. " • --:--"
+                    .. " • "
+                    .. matchTimer
             end
 
             local nowC = os.clock()

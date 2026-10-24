@@ -230,15 +230,51 @@ Instance.new("UICorner", nextBox).CornerRadius = UDim.new(0, 6)
 mkIcon(nextBox, "🎯", UDim2.new(0, 6, 0, 0))
 
 local nextLbl = Instance.new("TextLabel", nextBox)
-nextLbl.Size = UDim2.new(1, -34, 1, 0)
-nextLbl.Position = UDim2.new(0, 28, 0, 0)
+nextLbl.Size = UDim2.new(0, 0, 1, 0)
+nextLbl.Position = UDim2.new(0, 0, 0, 0)
 nextLbl.BackgroundTransparency = 1
 nextLbl.Text = "--"
 nextLbl.TextColor3 = C.T
 nextLbl.TextSize = 11
 nextLbl.Font = Enum.Font.GothamBold
 nextLbl.TextXAlignment = Enum.TextXAlignment.Left
-nextLbl.TextTruncate = Enum.TextTruncate.AtEnd
+nextLbl.TextTruncate = Enum.TextTruncate.None
+nextLbl.TextWrapped = false
+
+do
+    local reportScroll = Instance.new("ScrollingFrame", nextBox)
+    reportScroll.Name = "ReportScroll"
+    reportScroll.Size = UDim2.new(1, -34, 1, 0)
+    reportScroll.Position = UDim2.new(0, 28, 0, 0)
+    reportScroll.BackgroundTransparency = 1
+    reportScroll.BorderSizePixel = 0
+    reportScroll.Active = true
+    reportScroll.ClipsDescendants = true
+    reportScroll.ScrollingDirection = Enum.ScrollingDirection.X
+    reportScroll.ScrollBarThickness = 2
+    reportScroll.ScrollBarImageColor3 = C.A
+    reportScroll.ScrollBarImageTransparency = 0.35
+    reportScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+    reportScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+    nextLbl.Parent = reportScroll
+    nextLbl.AutomaticSize = Enum.AutomaticSize.X
+end
+
+do
+    local matchStatusLbl = Instance.new("TextLabel", infoPanel)
+    matchStatusLbl.Name = "MatchStatus"
+    matchStatusLbl.Size = UDim2.new(1, 0, 0, 16)
+    matchStatusLbl.BackgroundTransparency = 1
+    matchStatusLbl.LayoutOrder = 7
+    matchStatusLbl.Text = "โหมดไม่ทราบ • ⚪ รอแมตช์ใหม่ • 00:00"
+    matchStatusLbl.TextColor3 = C.T
+    matchStatusLbl.TextTransparency = 0.2
+    matchStatusLbl.TextSize = 10
+    matchStatusLbl.Font = Enum.Font.Gotham
+    matchStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
+    matchStatusLbl.TextTruncate = Enum.TextTruncate.AtEnd
+end
 
 local upgradePanel = Instance.new("Frame", container)
 upgradePanel.Size = UDim2.new(0, CONTAINER_W, 0, 0)
@@ -703,4 +739,3 @@ local function startVipPulse()
         )
     end)
 end
-

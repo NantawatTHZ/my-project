@@ -20,6 +20,37 @@ local function getDoorHealth(house, index)
     return hp / mx
 end
 
+local matchDoorLost = false
+
+local function automationMatchActive(house)
+    if not isInMatch() then
+        matchDoorLost = false
+        return false
+    end
+
+    if matchDoorLost or not house then
+        return false
+    end
+
+    refreshDoorCount()
+
+    for i = 1, myDoorCount do
+        local ratio = getDoorHealth(house, i)
+
+        if ratio ~= nil and ratio <= 0 then
+            matchDoorLost = true
+            emergencyDoorBusy = false
+            farmBusy = false
+
+            warn("[SmartUpgrade] Door HP reached 0. Automation paused until the next match.")
+
+            return false
+        end
+    end
+
+    return true
+end
+
 
 local function getEmergencyDoors(house)
     local doors = {}
@@ -185,6 +216,13 @@ local function startRepairLoop()
             pcall(function()
                 local house = getMyHouse()
 
+                if not automationMatchActive(house) then
+                    emergencyDoorBusy = false
+                    farmBusy = false
+
+                    return
+                end
+
                 if not house then
                     emergencyDoorBusy = false
                     return
@@ -301,6 +339,12 @@ local function startDoorLoop()
 
                     local house = getMyHouse()
 
+                    if not automationMatchActive(house) then
+                        emergencyDoorBusy = false
+                        farmBusy = false
+                        return
+                    end
+
                     if not house then
                         return
                     end
@@ -366,8 +410,16 @@ local function unitTick()
 
     local house = getMyHouse()
 
+    local matchActive = automationMatchActive(house)
+
     if not house then
         nextText = "No house"
+        return
+    end
+
+    if not matchActive then
+        farmBusy = false
+        nextText = "Match lost / waiting for next match"
         return
     end
 
@@ -809,4 +861,3 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 local isGameInitialized = false
-

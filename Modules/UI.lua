@@ -262,18 +262,37 @@ do
 end
 
 do
-    local matchStatusLbl = Instance.new("TextLabel", infoPanel)
+    local matchScroll = Instance.new("ScrollingFrame")
+    matchScroll.Name = "MatchStatusScroll"
+    matchScroll.Parent = infoPanel
+    matchScroll.Size = UDim2.new(1, 0, 0, 16)
+    matchScroll.BackgroundTransparency = 1
+    matchScroll.BorderSizePixel = 0
+    matchScroll.LayoutOrder = 7
+    matchScroll.ClipsDescendants = true
+    matchScroll.Active = false
+    matchScroll.ScrollingDirection = Enum.ScrollingDirection.X
+    matchScroll.ScrollBarThickness = 0
+    matchScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+    matchScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    matchScroll.CanvasPosition = Vector2.new(0, 0)
+
+    local matchStatusLbl = Instance.new("TextLabel")
     matchStatusLbl.Name = "MatchStatus"
-    matchStatusLbl.Size = UDim2.new(1, 0, 0, 16)
+    matchStatusLbl.Parent = matchScroll
+    matchStatusLbl.Size = UDim2.new(0, 0, 1, 0)
+    matchStatusLbl.AutomaticSize = Enum.AutomaticSize.X
     matchStatusLbl.BackgroundTransparency = 1
-    matchStatusLbl.LayoutOrder = 7
-    matchStatusLbl.Text = "โหมดไม่ทราบ • ⚪ รอแมตช์ใหม่ • 00:00"
+    matchStatusLbl.BorderSizePixel = 0
+    matchStatusLbl.Text = "🎮 Unknown Mode • ⏳ Waiting for Match • 00:00"
     matchStatusLbl.TextColor3 = C.T
     matchStatusLbl.TextTransparency = 0.2
     matchStatusLbl.TextSize = 10
     matchStatusLbl.Font = Enum.Font.Gotham
     matchStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
-    matchStatusLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    matchStatusLbl.TextYAlignment = Enum.TextYAlignment.Center
+    matchStatusLbl.TextWrapped = false
+    matchStatusLbl.TextTruncate = Enum.TextTruncate.None
 end
 
 local upgradePanel = Instance.new("Frame", container)

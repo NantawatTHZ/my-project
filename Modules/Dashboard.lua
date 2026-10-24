@@ -216,7 +216,9 @@ task.spawn(function()
             timeLbl.Text = os.date("%H:%M")
 
             local modeText, matchStatus, matchTimer = getMatchInfo()
-            local matchStatusLbl = infoPanel:FindFirstChild("MatchStatus")
+            local matchScroll = infoPanel:FindFirstChild("MatchStatusScroll")
+            local matchStatusLbl = matchScroll
+                and matchScroll:FindFirstChild("MatchStatus")
 
             if matchStatusLbl then
                 matchStatusLbl.Text =

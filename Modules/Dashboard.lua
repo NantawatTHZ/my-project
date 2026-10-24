@@ -144,8 +144,6 @@ displayConn = RunService.Heartbeat:Connect(function(dt)
 end)
 
 task.spawn(function()
-    local matchClock = {}
-
     while true do
         task.wait(1)
 
@@ -158,47 +156,16 @@ task.spawn(function()
             lvlInlineLbl.Text = "⭐ Lv" .. l
             timeLbl.Text = os.date("%H:%M")
 
-            matchClock.current = isInMatch()
-            matchClock.towers = workspace:FindFirstChild("PlacedTowers")
-
-            if matchClock.current then
-                if not matchClock.active
-                    or matchClock.towers ~= matchClock.previousTowers then
-                    matchClock.startedAt = os.clock()
-                end
-
-                matchClock.active = true
-                matchClock.previousTowers = matchClock.towers
-                matchClock.elapsed = math.max(
-                    0,
-                    math.floor(os.clock() - matchClock.startedAt)
-                )
-                matchClock.status = "🟢 กำลังเล่น"
-            else
-                if matchClock.active and matchClock.startedAt then
-                    matchClock.elapsed = math.max(
-                        0,
-                        math.floor(os.clock() - matchClock.startedAt)
-                    )
-                end
-
-                matchClock.active = false
-                matchClock.previousTowers = nil
-                matchClock.status = "⚪ รอแมตช์ใหม่"
-            end
-
+            local matchStatus =
+                isInMatch() and "🟢 กำลังเล่น"
+                or "⚪ รอแมตช์ใหม่"
             local matchStatusLbl = infoPanel:FindFirstChild("MatchStatus")
 
             if matchStatusLbl then
                 matchStatusLbl.Text =
                     "โหมดไม่ทราบ • "
-                    .. matchClock.status
-                    .. " • "
-                    .. string.format(
-                        "%02d:%02d",
-                        math.floor((matchClock.elapsed or 0) / 60),
-                        (matchClock.elapsed or 0) % 60
-                    )
+                    .. matchStatus
+                    .. " • --:--"
             end
 
             local nowC = os.clock()

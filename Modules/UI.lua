@@ -262,33 +262,50 @@ do
 end
 
 do
-    local matchScroll = Instance.new("ScrollingFrame")
+    local matchBox = Instance.new("Frame", infoPanel)
+    matchBox.Name = "MatchStatusBox"
+    matchBox.Size = UDim2.new(1, 0, 0, 28)
+    matchBox.BackgroundColor3 = C.P
+    matchBox.BorderSizePixel = 0
+    matchBox.LayoutOrder = 7
+    matchBox.ClipsDescendants = true
+
+    Instance.new("UICorner", matchBox).CornerRadius =
+        UDim.new(0, 6)
+
+    local matchIcon = Instance.new("TextLabel", matchBox)
+    matchIcon.Name = "MatchIcon"
+    matchIcon.Size = UDim2.new(0, 22, 1, 0)
+    matchIcon.Position = UDim2.new(0, 6, 0, 0)
+    matchIcon.BackgroundTransparency = 1
+    matchIcon.Text = "🎮"
+    matchIcon.TextSize = 12
+    matchIcon.Font = Enum.Font.Gotham
+    matchIcon.TextColor3 = C.A
+    matchIcon.TextXAlignment = Enum.TextXAlignment.Center
+
+    local matchScroll = Instance.new("ScrollingFrame", matchBox)
     matchScroll.Name = "MatchStatusScroll"
-    matchScroll.Parent = infoPanel
-    matchScroll.Size = UDim2.new(1, 0, 0, 16)
+    matchScroll.Size = UDim2.new(1, -36, 1, 0)
+    matchScroll.Position = UDim2.new(0, 30, 0, 0)
     matchScroll.BackgroundTransparency = 1
     matchScroll.BorderSizePixel = 0
-    matchScroll.LayoutOrder = 7
     matchScroll.ClipsDescendants = true
     matchScroll.Active = false
     matchScroll.ScrollingDirection = Enum.ScrollingDirection.X
     matchScroll.ScrollBarThickness = 0
     matchScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
     matchScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    matchScroll.CanvasPosition = Vector2.new(0, 0)
 
-    local matchStatusLbl = Instance.new("TextLabel")
+    local matchStatusLbl = Instance.new("TextLabel", matchScroll)
     matchStatusLbl.Name = "MatchStatus"
-    matchStatusLbl.Parent = matchScroll
     matchStatusLbl.Size = UDim2.new(0, 0, 1, 0)
     matchStatusLbl.AutomaticSize = Enum.AutomaticSize.X
     matchStatusLbl.BackgroundTransparency = 1
-    matchStatusLbl.BorderSizePixel = 0
-    matchStatusLbl.Text = "🎮 Unknown Mode • ⏳ Waiting for Match • 00:00"
+    matchStatusLbl.Text = "Unknown Mode • ⏳ Waiting for Match • --:--"
     matchStatusLbl.TextColor3 = C.T
-    matchStatusLbl.TextTransparency = 0.2
-    matchStatusLbl.TextSize = 10
-    matchStatusLbl.Font = Enum.Font.Gotham
+    matchStatusLbl.TextSize = 11
+    matchStatusLbl.Font = Enum.Font.GothamBold
     matchStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
     matchStatusLbl.TextYAlignment = Enum.TextYAlignment.Center
     matchStatusLbl.TextWrapped = false

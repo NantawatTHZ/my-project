@@ -598,13 +598,25 @@ local function getPooledHeader(index)
 
         local lbl = Instance.new("TextLabel", h)
         lbl.Name = "Lbl"
-        lbl.Size = UDim2.new(1, -92, 1, 0)
+        lbl.Size = UDim2.new(1, -112, 1, 0)
         lbl.Position = UDim2.new(0, 24, 0, 0)
         lbl.BackgroundTransparency = 1
         lbl.TextSize = 10
         lbl.Font = Enum.Font.GothamBold
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.TextTruncate = Enum.TextTruncate.AtEnd
+
+        local collapseBtn = Instance.new("TextButton", h)
+        collapseBtn.Name = "Collapse"
+        collapseBtn.Size = UDim2.new(0, 16, 0, 16)
+        collapseBtn.Position = UDim2.new(1, -88, 0, 4)
+        collapseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        collapseBtn.Text = "▼"
+        collapseBtn.TextColor3 = C.T
+        collapseBtn.TextSize = 9
+        collapseBtn.Font = Enum.Font.GothamBold
+
+        Instance.new("UICorner", collapseBtn).CornerRadius = UDim.new(0, 4)
 
         local tag = Instance.new("TextLabel", h)
         tag.Name = "Tag"
@@ -636,6 +648,18 @@ local function getPooledHeader(index)
             refreshList()
         end)
 
+        collapseBtn.MouseButton1Click:Connect(function()
+            local owner = h:GetAttribute("Owner")
+            if not owner then return end
+
+            headerPool.collapsedOwners =
+                headerPool.collapsedOwners or {}
+            headerPool.collapsedOwners[owner] =
+                not headerPool.collapsedOwners[owner]
+
+            refreshList()
+        end)
+
         headerPool[index] = h
     end
 
@@ -649,8 +673,10 @@ refreshList = function()
         row.Visible = false
     end
 
-    for _, hd in pairs(headerPool) do
-        hd.Visible = false
+    for index, hd in pairs(headerPool) do
+        if type(index) == "number" then
+            hd.Visible = false
+        end
     end
 
     local house = getMyHouse()
@@ -756,33 +782,43 @@ refreshList = function()
         hd.Lbl.TextColor3 = fg
         hd.Tag.Text = tagText .. " · " .. #g
         hd.Tag.TextColor3 = fg
+        hd.Collapse.Text =
+            headerPool.collapsedOwners
+            and headerPool.collapsedOwners[owner]
+            and "▶"
+            or "▼"
 
-        for _, e in ipairs(g) do
-            rowCount = rowCount + 1
-            order = order + 1
+        if not (
+            headerPool.collapsedOwners
+            and headerPool.collapsedOwners[owner]
+        ) then
+            for _, e in ipairs(g) do
+                rowCount = rowCount + 1
+                order = order + 1
 
-            local row = getPooledRow(rowCount)
-            row:SetAttribute("Unit", e.key)
-            row.LayoutOrder = order
-            row.Visible = true
-            row.Parent = listFrame
+                local row = getPooledRow(rowCount)
+                row:SetAttribute("Unit", e.key)
+                row.LayoutOrder = order
+                row.Visible = true
+                row.Parent = listFrame
 
-            row.CB.BackgroundColor3 =
-                e.data.selected and C.S
-                or Color3.fromRGB(50, 50, 60)
+                row.CB.BackgroundColor3 =
+                    e.data.selected and C.S
+                    or Color3.fromRGB(50, 50, 60)
 
-            row.CB.Text =
-                e.data.selected and "✓" or ""
+                row.CB.Text =
+                    e.data.selected and "✓" or ""
 
-            row.Lbl.Text =
-                e.unit .. " (" .. e.count .. ")"
+                row.Lbl.Text =
+                    e.unit .. " (" .. e.count .. ")"
 
-            row.Cap.Text = tostring(e.data.cap) .. " ▼"
-            row.CapOptions.Visible = false
+                row.Cap.Text = tostring(e.data.cap) .. " ▼"
+                row.CapOptions.Visible = false
+            end
         end
     end
 
-    noDataLabel.Visible = rowCount == 0
+    noDataLabel.Visible = next(groups) == nil
 
     listFrame.CanvasSize = UDim2.new(
         0,

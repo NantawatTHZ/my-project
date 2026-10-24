@@ -797,6 +797,9 @@ refreshList = function()
                 order = order + 1
 
                 local row = getPooledRow(rowCount)
+                if row:GetAttribute("Unit") ~= e.key then
+                    row.CapOptions.Visible = false
+                end
                 row:SetAttribute("Unit", e.key)
                 row.LayoutOrder = order
                 row.Visible = true
@@ -813,7 +816,6 @@ refreshList = function()
                     e.unit .. " (" .. e.count .. ")"
 
                 row.Cap.Text = tostring(e.data.cap) .. " ▼"
-                row.CapOptions.Visible = false
             end
         end
     end

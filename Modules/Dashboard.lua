@@ -10,27 +10,6 @@ local function getMatchInfo()
     local mode = workspace:GetAttribute("ResolvedGameMode")
         or workspace:GetAttribute("ActiveGameMode")
     local difficulty = workspace:GetAttribute("ModeDifficulty")
-    local seconds = player:GetAttribute("MatchSeconds")
-    local secondsAt = player:GetAttribute("MatchSecondsAt")
-    local elapsed = nil
-
-    if typeof(seconds) == "number"
-        and seconds >= 0
-        and seconds < math.huge then
-        elapsed = seconds
-
-        if player:GetAttribute("MatchSecondsLive") == true
-            and typeof(secondsAt) == "number"
-            and secondsAt > -math.huge
-            and secondsAt < math.huge then
-            elapsed = elapsed + math.max(
-                0,
-                workspace:GetServerTimeNow() - secondsAt
-            )
-        end
-
-        elapsed = math.max(0, math.floor(elapsed))
-    end
 
     local modeText = typeof(mode) == "string" and mode ~= ""
         and mode or "โหมดไม่ทราบ"
@@ -39,30 +18,7 @@ local function getMatchInfo()
         modeText = modeText .. " / " .. difficulty
     end
 
-    local rewardReady = player:GetAttribute("MatchRewardReady") == true
-    local matchWon = player:GetAttribute("MatchRewardWon")
-    local matchLive = player:GetAttribute("MatchSecondsLive") == true
-    local status
-
-    if rewardReady and typeof(matchWon) == "boolean" and not matchLive then
-        if matchWon then
-            status = "🏆 Won • ⏳ Waiting for Match"
-        else
-            status = "🔴 Defeated • ⏳ Waiting for Match"
-        end
-    elseif isMatchSession then
-        status = "🟢 In Progress"
-    else
-        status = "⏳ Waiting for Match"
-    end
-
-    return modeText,
-        status,
-        elapsed and string.format(
-            "%02d:%02d",
-            math.floor(elapsed / 60),
-            elapsed % 60
-        ) or "--:--"
+    return modeText
 end
 
 local function colorByQuality(v, good, mid)
@@ -222,7 +178,7 @@ task.spawn(function()
                 lvlInlineLbl.Text = "⭐ Lv" .. l
                 timeLbl.Text = os.date("%H:%M")
 
-                local modeText, matchStatus, matchTimer = getMatchInfo()
+                local modeText = getMatchInfo()
 
                 local matchBox = infoPanel:FindFirstChild("MatchStatusBox")
                 local matchIcon = matchBox
@@ -250,12 +206,7 @@ task.spawn(function()
                         matchIcon.Text = eventIcon
                     end
 
-                    matchStatusLbl.Text =
-                        modeText
-                        .. " • "
-                        .. matchStatus
-                        .. " • 🕒 "
-                        .. matchTimer
+                    matchStatusLbl.Text = modeText
                 end
             end
 

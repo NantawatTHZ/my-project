@@ -302,7 +302,7 @@ do
     matchStatusLbl.Size = UDim2.new(0, 0, 1, 0)
     matchStatusLbl.AutomaticSize = Enum.AutomaticSize.X
     matchStatusLbl.BackgroundTransparency = 1
-    matchStatusLbl.Text = "Unknown Mode • ⏳ Waiting for Match • --:--"
+    matchStatusLbl.Text = "โหมดไม่ทราบ"
     matchStatusLbl.TextColor3 = C.T
     matchStatusLbl.TextSize = 11
     matchStatusLbl.Font = Enum.Font.GothamBold

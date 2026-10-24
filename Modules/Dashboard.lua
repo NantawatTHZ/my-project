@@ -471,40 +471,41 @@ local function getPooledRow(index)
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.TextTruncate = Enum.TextTruncate.AtEnd
 
-        local minusBtn = Instance.new("TextButton", row)
-        minusBtn.Name = "Minus"
-        minusBtn.Size = UDim2.new(0, 16, 0, 16)
-        minusBtn.Position = UDim2.new(1, -66, 0, 5)
-        minusBtn.BackgroundColor3 =
-            Color3.fromRGB(50, 50, 60)
-        minusBtn.Text = "-"
-        minusBtn.TextColor3 = C.T
-        minusBtn.TextSize = 11
-        minusBtn.Font = Enum.Font.GothamBold
-
-        Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 4)
-
-        local rowCap = Instance.new("TextLabel", row)
+        local rowCap = Instance.new("TextButton", row)
         rowCap.Name = "Cap"
-        rowCap.Size = UDim2.new(0, 22, 1, 0)
-        rowCap.Position = UDim2.new(1, -46, 0, 0)
-        rowCap.BackgroundTransparency = 1
+        rowCap.Size = UDim2.new(0, 48, 0, 20)
+        rowCap.Position = UDim2.new(1, -54, 0, 3)
+        rowCap.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        rowCap.Text = "1 ▼"
+        rowCap.BackgroundTransparency = 0
         rowCap.TextColor3 = C.A
-        rowCap.TextSize = 11
+        rowCap.TextSize = 10
         rowCap.Font = Enum.Font.GothamBold
 
-        local plusBtn = Instance.new("TextButton", row)
-        plusBtn.Name = "Plus"
-        plusBtn.Size = UDim2.new(0, 16, 0, 16)
-        plusBtn.Position = UDim2.new(1, -22, 0, 5)
-        plusBtn.BackgroundColor3 =
-            Color3.fromRGB(50, 50, 60)
-        plusBtn.Text = "+"
-        plusBtn.TextColor3 = C.T
-        plusBtn.TextSize = 11
-        plusBtn.Font = Enum.Font.GothamBold
+        Instance.new("UICorner", rowCap).CornerRadius = UDim.new(0, 4)
 
-        Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 4)
+        local capOptions = Instance.new("ScrollingFrame", row)
+        capOptions.Name = "CapOptions"
+        capOptions.Size = UDim2.new(0, 54, 0, 100)
+        capOptions.Position = UDim2.new(1, -58, 0, 24)
+        capOptions.BackgroundColor3 = C.P
+        capOptions.BorderSizePixel = 0
+        capOptions.ScrollBarThickness = 2
+        capOptions.ScrollBarImageColor3 = C.A
+        capOptions.CanvasSize = UDim2.new(0, 0, 0, 0)
+        capOptions.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        capOptions.ScrollingDirection = Enum.ScrollingDirection.Y
+        capOptions.Visible = false
+        capOptions.ZIndex = 10
+
+        Instance.new("UICorner", capOptions).CornerRadius = UDim.new(0, 4)
+
+        local capOptionsLayout = Instance.new("UIListLayout", capOptions)
+        capOptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        local capOptionsPad = Instance.new("UIPadding", capOptions)
+        capOptionsPad.PaddingTop = UDim.new(0, 2)
+        capOptionsPad.PaddingBottom = UDim.new(0, 2)
 
         local function rowData()
             return unitData[row:GetAttribute("Unit")]
@@ -523,33 +524,52 @@ local function getPooledRow(index)
             refreshList()
         end)
 
-        minusBtn.MouseButton1Click:Connect(function()
-            local data = rowData()
-
-            if data and data.cap > 1 then
-                data.cap = data.cap - 1
-                rowCap.Text = tostring(data.cap)
-            end
-        end)
-
-        plusBtn.MouseButton1Click:Connect(function()
+        rowCap.MouseButton1Click:Connect(function()
             local data = rowData()
             if not data then return end
 
             local maxCap = 99
 
-            if data[1]
-                and data[1].obj
-                and data[1].obj.Parent then
-
-                maxCap =
-                    data[1].obj:GetAttribute("LevelCap") or 99
+            for _, option in ipairs(capOptions:GetChildren()) do
+                if option:IsA("TextButton") then
+                    option:Destroy()
+                end
             end
 
-            if data.cap < maxCap then
-                data.cap = data.cap + 1
-                rowCap.Text = tostring(data.cap)
+            if data[1] and data[1].obj and data[1].obj.Parent then
+                maxCap = data[1].obj:GetAttribute("LevelCap") or 99
             end
+
+            maxCap = math.max(maxCap, data.cap)
+            maxCap = math.max(1, math.floor(maxCap))
+
+            for cap = 1, maxCap do
+                local optionCap = cap
+                local option = Instance.new("TextButton", capOptions)
+                option.Size = UDim2.new(1, -2, 0, 20)
+                option.BackgroundColor3 = C.P
+                option.BorderSizePixel = 0
+                option.Text = tostring(optionCap)
+                option.TextColor3 = optionCap == data.cap and C.S or C.T
+                option.TextSize = 10
+                option.Font = Enum.Font.Gotham
+                option.LayoutOrder = optionCap
+                option.ZIndex = 11
+
+                option.MouseButton1Click:Connect(function()
+                    local currentData = rowData()
+
+                    if currentData then
+                        currentData.cap = optionCap
+                        rowCap.Text = tostring(optionCap) .. " ▼"
+                    end
+
+                    capOptions.Visible = false
+                end)
+            end
+
+            capOptions.CanvasPosition = Vector2.new(0, 0)
+            capOptions.Visible = not capOptions.Visible
         end)
 
         rowPool[index] = row
@@ -757,7 +777,8 @@ refreshList = function()
             row.Lbl.Text =
                 e.unit .. " (" .. e.count .. ")"
 
-            row.Cap.Text = tostring(e.data.cap)
+            row.Cap.Text = tostring(e.data.cap) .. " ▼"
+            row.CapOptions.Visible = false
         end
     end
 

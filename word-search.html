@@ -346,11 +346,18 @@
         @media (max-width: 460px) {
             .page { width: calc(100% - 24px); }
             .edition { font-size: 9px; }
-            .search-box { min-height: 62px; padding-left: 13px; }
-            #query { font-size: 17px; }
-            .toolbar { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+            main { padding-top: 26px; }
+            h1 { font-size: 30px; }
+            .intro { margin-bottom: 18px; }
+            .search-box { min-height: 54px; padding-left: 13px; }
+            #query { font-size: 16px; }
+            .toolbar { align-items: flex-start; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
             .mode-button { padding-inline: 10px; }
-            .results-list { grid-template-columns: 1fr; }
+            .results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+            .word-button { min-height: 36px; gap: 4px; padding: 5px 2px; }
+            .word-text { font-size: 13px; }
+            .copy-label { display: none; }
+            .more-row { padding-top: 16px; }
             footer { flex-direction: column; gap: 6px; }
         }
 

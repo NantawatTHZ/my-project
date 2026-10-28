@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eef3ef">
+    <title>คลังคำไทย</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #eef3ef;
+            --ink: #172d27;
+            --muted: #64746d;
+            --line: #cfdbd3;
+            --surface: #fbfdfb;
+            --green: #17684f;
+            --red: #d34f36;
+            --yellow: #f0c94a;
+            --mono: "IBM Plex Mono", monospace;
+            --sans: "IBM Plex Sans Thai", "Leelawadee UI", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            background-color: var(--paper);
+            background-image:
+                linear-gradient(rgba(23, 45, 39, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(23, 45, 39, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            font-family: var(--sans);
+        }
+
+        button, input { font: inherit; }
+        button { color: inherit; }
+
+        .page {
+            width: min(1120px, calc(100% - 48px));
+            margin: 0 auto;
+            padding: 30px 0 56px;
+        }
+
+        .masthead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            background: var(--green);
+            color: white;
+            font-size: 19px;
+            line-height: 1;
+        }
+
+        .edition {
+            color: var(--muted);
+            font: 11px var(--mono);
+        }
+
+        main { padding-top: 54px; }
+
+        .intro {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0 0 12px;
+            color: var(--green);
+            font: 11px var(--mono);
+        }
+
+        .eyebrow::before {
+            width: 8px;
+            height: 8px;
+            background: var(--red);
+            content: "";
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 40px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .entry-total {
+            padding: 8px 0 5px 16px;
+            border-left: 2px solid var(--yellow);
+            color: var(--muted);
+            font: 12px var(--mono);
+            white-space: nowrap;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            min-height: 72px;
+            padding: 8px 14px 8px 20px;
+            border: 1px solid #aebfb4;
+            background: var(--surface);
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(23, 104, 79, 0.12);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+        }
+
+        .search-symbol {
+            flex: 0 0 auto;
+            margin-right: 14px;
+            color: var(--red);
+            font-size: 22px;
+        }
+
+        #query {
+            width: 100%;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--ink);
+            font-size: 20px;
+        }
+
+        #query::placeholder { color: #8a9991; }
+
+        .clear-button {
+            flex: 0 0 auto;
+            padding: 8px 10px;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .clear-button:hover { color: var(--red); }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin: 16px 0 28px;
+        }
+
+        .modes {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            border: 1px solid var(--line);
+            background: rgba(251, 253, 251, 0.7);
+        }
+
+        .mode-button {
+            min-height: 34px;
+            padding: 5px 13px;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .mode-button[aria-pressed="true"] {
+            background: var(--green);
+            color: white;
+        }
+
+        .mode-button:focus-visible,
+        .clear-button:focus-visible,
+        .word-button:focus-visible,
+        .more-button:focus-visible,
+        .retry-button:focus-visible {
+            outline: 2px solid var(--red);
+            outline-offset: 2px;
+        }
+
+        .result-summary {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .result-summary strong {
+            color: var(--ink);
+            font: 500 14px var(--mono);
+        }
+
+        .results-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2px 10px;
+            border-bottom: 1px solid var(--ink);
+            color: var(--muted);
+            font: 10px var(--mono);
+            text-transform: uppercase;
+        }
+
+        .results-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            column-gap: 22px;
+        }
+
+        .word-button {
+            display: flex;
+            width: 100%;
+            min-height: 48px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 4px;
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .word-button:hover {
+            background: rgba(251, 253, 251, 0.72);
+        }
+
+        .word-text {
+            overflow-wrap: anywhere;
+            font-size: 15px;
+        }
+
+        .word-button mark {
+            background: #f4dc7b;
+            color: inherit;
+        }
+
+        .copy-label {
+            flex: 0 0 auto;
+            color: var(--green);
+            font: 10px var(--mono);
+            opacity: 0;
+            transition: opacity 120ms ease;
+        }
+
+        .word-button:hover .copy-label,
+        .word-button:focus-visible .copy-label { opacity: 1; }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            min-height: 150px;
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .more-row {
+            display: flex;
+            justify-content: center;
+            padding-top: 24px;
+        }
+
+        .more-button, .retry-button {
+            min-height: 40px;
+            padding: 8px 18px;
+            border: 1px solid var(--green);
+            background: var(--surface);
+            color: var(--green);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .more-button:hover, .retry-button:hover {
+            background: var(--green);
+            color: white;
+        }
+
+        .status {
+            min-height: 22px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .status[data-kind="error"] { color: #a43126; }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 38px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font: 10px var(--mono);
+        }
+
+        @media (max-width: 760px) {
+            .page { width: min(100% - 32px, 600px); padding-top: 18px; }
+            main { padding-top: 38px; }
+            .intro { grid-template-columns: 1fr; gap: 12px; }
+            h1 { font-size: 34px; }
+            .entry-total { width: max-content; padding-left: 10px; }
+            .results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+        }
+
+        @media (max-width: 460px) {
+            .page { width: calc(100% - 24px); }
+            .edition { font-size: 9px; }
+            .search-box { min-height: 62px; padding-left: 13px; }
+            #query { font-size: 17px; }
+            .toolbar { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+            .mode-button { padding-inline: 10px; }
+            .results-list { grid-template-columns: 1fr; }
+            footer { flex-direction: column; gap: 6px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="masthead">
+            <div class="brand"><span class="brand-mark" aria-hidden="true">ก</span><span>คลังคำไทย</span></div>
+            <span class="edition">WORD INDEX / TH</span>
+        </header>
+
+        <main>
+            <section class="intro" aria-labelledby="page-title">
+                <div>
+                    <p class="eyebrow">THAI WORD COLLECTION</p>
+                    <h1 id="page-title">ค้นคำในคลัง</h1>
+                </div>
+                <div class="entry-total" id="entry-total">กำลังโหลดรายการ</div>
+            </section>
+
+            <form id="search-form" role="search">
+                <div class="search-box">
+                    <span class="search-symbol" aria-hidden="true">⌕</span>
+                    <label class="sr-only" for="query">ค้นหาคำ</label>
+                    <input id="query" type="search" placeholder="พิมพ์คำที่ต้องการค้นหา" autocomplete="off" spellcheck="false" disabled>
+                    <button class="clear-button" id="clear-button" type="button">ล้าง</button>
+                </div>
+            </form>
+
+            <div class="toolbar">
+                <div class="modes" role="group" aria-label="รูปแบบการค้นหา">
+                    <button class="mode-button" type="button" data-mode="contains" aria-pressed="true">มีคำนี้</button>
+                    <button class="mode-button" type="button" data-mode="prefix" aria-pressed="false">ขึ้นต้นด้วย</button>
+                    <button class="mode-button" type="button" data-mode="exact" aria-pressed="false">ตรงกัน</button>
+                </div>
+                <div class="result-summary" id="result-summary" aria-live="polite">0 ผลลัพธ์</div>
+            </div>
+
+            <div class="results-head"><span>คำ</span><span id="range-label">0 รายการ</span></div>
+            <section class="results-list" id="results" aria-label="ผลการค้นหา" aria-live="polite"></section>
+            <div class="more-row" id="more-row" hidden>
+                <button class="more-button" id="more-button" type="button">แสดงเพิ่ม</button>
+            </div>
+            <div class="status" id="status" role="status" aria-live="polite"></div>
+        </main>
+
+        <footer><span>WORD INDEX</span><span id="footer-count">UTF-8 · TEXT SOURCE</span></footer>
+    </div>
+
+    <script>
+        const PAGE_SIZE = 120;
+        const wordsUrl = new URL("./data.txt", window.location.href);
+        const input = document.getElementById("query");
+        const results = document.getElementById("results");
+        const summary = document.getElementById("result-summary");
+        const rangeLabel = document.getElementById("range-label");
+        const entryTotal = document.getElementById("entry-total");
+        const footerCount = document.getElementById("footer-count");
+        const status = document.getElementById("status");
+        const moreRow = document.getElementById("more-row");
+        const moreButton = document.getElementById("more-button");
+        const modeButtons = [...document.querySelectorAll("[data-mode]")];
+
+        let words = [];
+        let matches = [];
+        let activeMode = "contains";
+        let visibleCount = PAGE_SIZE;
+        let searchTimer = 0;
+
+        const numberFormat = new Intl.NumberFormat("th-TH");
+
+        function normalized(value) {
+            return value.normalize("NFC").toLocaleLowerCase("th-TH");
+        }
+
+        function setStatus(message, kind = "") {
+            status.textContent = message;
+            status.dataset.kind = kind;
+        }
+
+        function modeMatches(word, query) {
+            if (activeMode === "prefix") return word.startsWith(query);
+            if (activeMode === "exact") return word === query;
+            return word.includes(query);
+        }
+
+        function addHighlightedText(parent, word, query) {
+            if (!query) {
+                parent.textContent = word;
+                return;
+            }
+
+            const start = normalized(word).indexOf(query);
+            if (start < 0 || activeMode === "exact") {
+                parent.textContent = word;
+                return;
+            }
+
+            const end = start + query.length;
+            parent.append(document.createTextNode(word.slice(0, start)));
+            const mark = document.createElement("mark");
+            mark.textContent = word.slice(start, end);
+            parent.append(mark, document.createTextNode(word.slice(end)));
+        }
+
+        async function copyWord(word) {
+            try {
+                await navigator.clipboard.writeText(word);
+                setStatus(`คัดลอก “${word}” แล้ว`);
+            } catch {
+                setStatus("คัดลอกไม่ได้ในบริบทนี้", "error");
+            }
+        }
+
+        function renderResults() {
+            const query = normalized(input.value.trim());
+            const fragment = document.createDocumentFragment();
+            const currentWords = matches.slice(0, visibleCount);
+
+            for (const word of currentWords) {
+                const button = document.createElement("button");
+                button.className = "word-button";
+                button.type = "button";
+                button.setAttribute("aria-label", `คัดลอก ${word}`);
+
+                const text = document.createElement("span");
+                text.className = "word-text";
+                addHighlightedText(text, word, query);
+
+                const copy = document.createElement("span");
+                copy.className = "copy-label";
+                copy.textContent = "คัดลอก";
+
+                button.append(text, copy);
+                button.addEventListener("click", () => copyWord(word));
+                fragment.append(button);
+            }
+
+            results.replaceChildren(fragment);
+
+            if (matches.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty-state";
+                empty.textContent = query ? "ไม่พบคำที่ค้นหา" : "ไม่มีรายการในคลัง";
+                results.append(empty);
+            }
+
+            summary.innerHTML = `<strong>${numberFormat.format(matches.length)}</strong> ผลลัพธ์`;
+            rangeLabel.textContent = `${numberFormat.format(currentWords.length)} รายการ`;
+            moreRow.hidden = currentWords.length >= matches.length;
+            moreButton.textContent = `แสดงเพิ่ม ${numberFormat.format(Math.min(PAGE_SIZE, matches.length - currentWords.length))} รายการ`;
+        }
+
+        function search() {
+            const query = normalized(input.value.trim());
+            matches = query
+                ? words.filter(word => modeMatches(normalized(word), query))
+                : words;
+            visibleCount = PAGE_SIZE;
+            setStatus("");
+            renderResults();
+        }
+
+        function scheduleSearch() {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(search, 90);
+        }
+
+        async function loadWords() {
+            input.disabled = true;
+            setStatus("กำลังอ่าน data.txt…");
+
+            try {
+                const response = await fetch(wordsUrl, {cache: "no-store"});
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const text = await response.text();
+                words = text.split(/\r?\n/).map(word => word.trim()).filter(Boolean);
+                if (words.length === 0) throw new Error("data.txt ไม่มีรายการคำ");
+
+                matches = words;
+                input.disabled = false;
+                entryTotal.textContent = `${numberFormat.format(words.length)} รายการ`;
+                footerCount.textContent = `UTF-8 · ${numberFormat.format(words.length)} ENTRIES`;
+                setStatus("");
+                renderResults();
+            } catch (error) {
+                entryTotal.textContent = "โหลดข้อมูลไม่สำเร็จ";
+                results.replaceChildren();
+                summary.textContent = "ยังไม่มีผลลัพธ์";
+                rangeLabel.textContent = "0 รายการ";
+                setStatus(`โหลด data.txt ไม่สำเร็จ (${error.message})`, "error");
+                const retry = document.createElement("button");
+                retry.className = "retry-button";
+                retry.type = "button";
+                retry.textContent = "ลองอีกครั้ง";
+                retry.addEventListener("click", loadWords);
+                results.append(retry);
+            }
+        }
+
+        document.getElementById("search-form").addEventListener("submit", event => {
+            event.preventDefault();
+            search();
+        });
+
+        input.addEventListener("input", scheduleSearch);
+
+        document.getElementById("clear-button").addEventListener("click", () => {
+            input.value = "";
+            input.focus();
+            search();
+        });
+
+        modeButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                activeMode = button.dataset.mode;
+                modeButtons.forEach(item => {
+                    item.setAttribute("aria-pressed", String(item === button));
+                });
+                search();
+            });
+        });
+
+        moreButton.addEventListener("click", () => {
+            visibleCount += PAGE_SIZE;
+            renderResults();
+        });
+
+        document.addEventListener("keydown", event => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                input.focus();
+            } else if (event.key === "Escape" && document.activeElement === input) {
+                input.value = "";
+                search();
+            }
+        });
+
+        loadWords();
+    </script>
+</body>
+</html>

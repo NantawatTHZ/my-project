@@ -183,30 +183,6 @@
             margin: 16px 0 28px;
         }
 
-        .modes {
-            display: inline-flex;
-            gap: 4px;
-            padding: 4px;
-            border: 1px solid var(--line);
-            background: rgba(251, 253, 251, 0.7);
-        }
-
-        .mode-button {
-            min-height: 34px;
-            padding: 5px 13px;
-            border: 0;
-            background: transparent;
-            color: var(--muted);
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .mode-button[aria-pressed="true"] {
-            background: var(--green);
-            color: white;
-        }
-
-        .mode-button:focus-visible,
         .clear-button:focus-visible,
         .more-button:focus-visible,
         .retry-button:focus-visible {
@@ -311,8 +287,6 @@
             .intro { margin-bottom: 18px; }
             .search-box { min-height: 54px; padding-left: 13px; }
             #query { font-size: 16px; }
-            .toolbar { align-items: flex-start; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
-            .mode-button { padding-inline: 10px; }
             .results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
             .word-entry { min-height: 36px; padding: 5px 2px; }
             .word-text { font-size: 13px; }
@@ -349,14 +323,6 @@
                 </div>
             </form>
 
-            <div class="toolbar">
-                <div class="modes" role="group" aria-label="รูปแบบการค้นหา">
-                    <button class="mode-button" type="button" data-mode="contains" aria-pressed="true">มีคำนี้</button>
-                    <button class="mode-button" type="button" data-mode="prefix" aria-pressed="false">ขึ้นต้นด้วย</button>
-                    <button class="mode-button" type="button" data-mode="exact" aria-pressed="false">ตรงกัน</button>
-                </div>
-            </div>
-
             <section class="results-list" id="results" role="list" aria-label="ผลการค้นหา" aria-live="polite"></section>
             <div class="more-row" id="more-row" hidden>
                 <button class="more-button" id="more-button" type="button">แสดงเพิ่ม</button>
@@ -374,12 +340,9 @@
         const status = document.getElementById("status");
         const moreRow = document.getElementById("more-row");
         const moreButton = document.getElementById("more-button");
-        const modeButtons = [...document.querySelectorAll("[data-mode]")];
-
         let words = [];
         let normalizedWords = [];
         let matches = null;
-        let activeMode = "contains";
         let visibleCount = PAGE_SIZE;
         let searchTimer = 0;
 
@@ -392,20 +355,14 @@
             status.dataset.kind = kind;
         }
 
-        function modeMatches(word, query) {
-            if (activeMode === "prefix") return word.startsWith(query);
-            if (activeMode === "exact") return word === query;
-            return word.includes(query);
-        }
-
         function addHighlightedText(parent, word, normalizedWord, query) {
             if (!query) {
                 parent.textContent = word;
                 return;
             }
 
-            const start = normalizedWord.indexOf(query);
-            if (start < 0 || activeMode === "exact") {
+            const start = normalizedWord.startsWith(query) ? 0 : -1;
+            if (start < 0) {
                 parent.textContent = word;
                 return;
             }
@@ -457,7 +414,7 @@
             } else {
                 const found = [];
                 for (let i = 0; i < normalizedWords.length; i++) {
-                    if (modeMatches(normalizedWords[i], query)) found.push(i);
+                    if (normalizedWords[i].startsWith(query)) found.push(i);
                 }
                 matches = found;
             }
@@ -512,16 +469,6 @@
             input.value = "";
             input.focus();
             search();
-        });
-
-        modeButtons.forEach(button => {
-            button.addEventListener("click", () => {
-                activeMode = button.dataset.mode;
-                modeButtons.forEach(item => {
-                    item.setAttribute("aria-pressed", String(item === button));
-                });
-                search();
-            });
         });
 
         moreButton.addEventListener("click", () => {

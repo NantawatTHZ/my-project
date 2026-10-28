@@ -242,23 +242,16 @@
             column-gap: 22px;
         }
 
-        .word-button {
+        .word-entry {
             display: flex;
             width: 100%;
             min-height: 48px;
             align-items: center;
-            justify-content: space-between;
-            gap: 8px;
             padding: 8px 4px;
             border: 0;
             border-bottom: 1px solid var(--line);
             background: transparent;
-            cursor: pointer;
             text-align: left;
-        }
-
-        .word-button:hover {
-            background: rgba(251, 253, 251, 0.72);
         }
 
         .word-text {
@@ -266,21 +259,10 @@
             font-size: 15px;
         }
 
-        .word-button mark {
+        .word-entry mark {
             background: #f4dc7b;
             color: inherit;
         }
-
-        .copy-label {
-            flex: 0 0 auto;
-            color: var(--green);
-            font: 10px var(--mono);
-            opacity: 0;
-            transition: opacity 120ms ease;
-        }
-
-        .word-button:hover .copy-label,
-        .word-button:focus-visible .copy-label { opacity: 1; }
 
         .empty-state {
             grid-column: 1 / -1;
@@ -354,9 +336,8 @@
             .toolbar { align-items: flex-start; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
             .mode-button { padding-inline: 10px; }
             .results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
-            .word-button { min-height: 36px; gap: 4px; padding: 5px 2px; }
+            .word-entry { min-height: 36px; padding: 5px 2px; }
             .word-text { font-size: 13px; }
-            .copy-label { display: none; }
             .more-row { padding-top: 16px; }
             footer { flex-direction: column; gap: 6px; }
         }
@@ -401,7 +382,7 @@
             </div>
 
             <div class="results-head"><span>คำ</span><span id="range-label">0 รายการ</span></div>
-            <section class="results-list" id="results" aria-label="ผลการค้นหา" aria-live="polite"></section>
+            <section class="results-list" id="results" role="list" aria-label="ผลการค้นหา" aria-live="polite"></section>
             <div class="more-row" id="more-row" hidden>
                 <button class="more-button" id="more-button" type="button">แสดงเพิ่ม</button>
             </div>
@@ -426,7 +407,8 @@
         const modeButtons = [...document.querySelectorAll("[data-mode]")];
 
         let words = [];
-        let matches = [];
+        let normalizedWords = [];
+        let matches = null;
         let activeMode = "contains";
         let visibleCount = PAGE_SIZE;
         let searchTimer = 0;
@@ -448,13 +430,13 @@
             return word.includes(query);
         }
 
-        function addHighlightedText(parent, word, query) {
+        function addHighlightedText(parent, word, normalizedWord, query) {
             if (!query) {
                 parent.textContent = word;
                 return;
             }
 
-            const start = normalized(word).indexOf(query);
+            const start = normalizedWord.indexOf(query);
             if (start < 0 || activeMode === "exact") {
                 parent.textContent = word;
                 return;
@@ -467,37 +449,24 @@
             parent.append(mark, document.createTextNode(word.slice(end)));
         }
 
-        async function copyWord(word) {
-            try {
-                await navigator.clipboard.writeText(word);
-                setStatus(`คัดลอก “${word}” แล้ว`);
-            } catch {
-                setStatus("คัดลอกไม่ได้ในบริบทนี้", "error");
-            }
-        }
-
         function renderResults() {
             const query = normalized(input.value.trim());
             const fragment = document.createDocumentFragment();
-            const currentWords = matches.slice(0, visibleCount);
+            const totalMatches = matches ? matches.length : words.length;
+            const currentCount = Math.min(totalMatches, visibleCount);
 
-            for (const word of currentWords) {
-                const button = document.createElement("button");
-                button.className = "word-button";
-                button.type = "button";
-                button.setAttribute("aria-label", `คัดลอก ${word}`);
+            for (let i = 0; i < currentCount; i++) {
+                const wordIndex = matches ? matches[i] : i;
+                const word = words[wordIndex];
+                const item = document.createElement("div");
+                item.className = "word-entry";
+                item.setAttribute("role", "listitem");
 
                 const text = document.createElement("span");
                 text.className = "word-text";
-                addHighlightedText(text, word, query);
-
-                const copy = document.createElement("span");
-                copy.className = "copy-label";
-                copy.textContent = "คัดลอก";
-
-                button.append(text, copy);
-                button.addEventListener("click", () => copyWord(word));
-                fragment.append(button);
+                addHighlightedText(text, word, normalizedWords[wordIndex], query);
+                item.append(text);
+                fragment.append(item);
             }
 
             results.replaceChildren(fragment);
@@ -509,17 +478,23 @@
                 results.append(empty);
             }
 
-            summary.innerHTML = `<strong>${numberFormat.format(matches.length)}</strong> ผลลัพธ์`;
-            rangeLabel.textContent = `${numberFormat.format(currentWords.length)} รายการ`;
-            moreRow.hidden = currentWords.length >= matches.length;
-            moreButton.textContent = `แสดงเพิ่ม ${numberFormat.format(Math.min(PAGE_SIZE, matches.length - currentWords.length))} รายการ`;
+            summary.innerHTML = `<strong>${numberFormat.format(totalMatches)}</strong> ผลลัพธ์`;
+            rangeLabel.textContent = `${numberFormat.format(currentCount)} รายการ`;
+            moreRow.hidden = currentCount >= totalMatches;
+            moreButton.textContent = `แสดงเพิ่ม ${numberFormat.format(Math.min(PAGE_SIZE, totalMatches - currentCount))} รายการ`;
         }
 
         function search() {
             const query = normalized(input.value.trim());
-            matches = query
-                ? words.filter(word => modeMatches(normalized(word), query))
-                : words;
+            if (!query) {
+                matches = null;
+            } else {
+                const found = [];
+                for (let i = 0; i < normalizedWords.length; i++) {
+                    if (modeMatches(normalizedWords[i], query)) found.push(i);
+                }
+                matches = found;
+            }
             visibleCount = PAGE_SIZE;
             setStatus("");
             renderResults();
@@ -542,7 +517,8 @@
                 words = text.split(/\r?\n/).map(word => word.trim()).filter(Boolean);
                 if (words.length === 0) throw new Error("data.txt ไม่มีรายการคำ");
 
-                matches = words;
+                normalizedWords = words.map(normalized);
+                matches = null;
                 input.disabled = false;
                 entryTotal.textContent = `${numberFormat.format(words.length)} รายการ`;
                 footerCount.textContent = `UTF-8 · ${numberFormat.format(words.length)} ENTRIES`;
